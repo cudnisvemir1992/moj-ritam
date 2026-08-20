@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f7f4">
+  <meta name="description" content="Moj ritam – osobní týdenní přehled kroků a mini cviků.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Moj ritam">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <title>Moj ritam</title>
+  <style>
+    :root {
+      --bg:#f6f7f4;
+      --card:#ffffff;
+      --soft:#f0f2ef;
+      --text:#1f2420;
+      --muted:#6c746e;
+      --line:#dfe4df;
+      --green:#4f8a5b;
+      --green-soft:#edf6ee;
+      --yellow:#a07812;
+      --yellow-soft:#fff7db;
+      --blue-soft:#eef4fb;
+      --purple-soft:#f3effa;
+      --danger:#9b4b46;
+      --radius:20px;
+    }
+    * { box-sizing: border-box; }
+    html { background:var(--bg); color-scheme:light; }
+    body {
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:var(--bg);
+    }
+    button,input { font:inherit; }
+    button { touch-action:manipulation; }
+    .wrap {
+      width:min(760px,100%);
+      margin:0 auto;
+      padding:18px 14px 48px;
+    }
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; margin-bottom:14px;
+    }
+    h1 { margin:0; font-size:1.55rem; line-height:1.15; }
+    .weekline { margin-top:4px; color:var(--muted); font-size:.92rem; }
+    .nav { display:flex; gap:6px; }
+    .iconbtn,.btn {
+      border:1px solid var(--line); background:var(--card); color:var(--text);
+      border-radius:14px; min-height:44px; padding:9px 12px;
+    }
+    .iconbtn { min-width:44px; font-size:1.2rem; padding:8px 10px; }
+    .btn.primary { background:var(--green); color:white; border-color:var(--green); }
+    .btn.soft { background:var(--soft); }
+    .card {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:16px;
+      margin-bottom:14px;
+    }
+    .summary-grid { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:start; }
+    .summary-main { min-width:0; }
+    .bigline { font-size:1.08rem; font-weight:650; }
+    .bigline strong { font-size:1.9rem; color:var(--green); }
+    .sub { color:var(--muted); font-size:.9rem; margin-top:5px; }
+    .goalbox {
+      background:var(--soft); border-radius:16px; padding:12px 14px; text-align:center;
+      min-width:125px;
+    }
+    .goalbox .n { font-size:1.35rem; font-weight:750; color:var(--green); }
+    .progress { height:12px; background:#e6e9e6; border-radius:99px; overflow:hidden; margin:13px 0 8px; }
+    .progress > div { height:100%; background:var(--green); width:0%; transition:width .2s ease; }
+    .cheer {
+      margin-top:12px; padding:12px 13px; background:var(--green-soft);
+      border-radius:14px; font-weight:600;
+    }
+    .section-title {
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin:22px 2px 10px;
+    }
+    .section-title h2 { margin:0; font-size:1.15rem; }
+    .tiny { color:var(--muted); font-size:.83rem; }
+    .day {
+      background:var(--card); border:1px solid var(--line); border-radius:18px;
+      padding:14px; margin-bottom:10px;
+    }
+    .day-head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .dayname { font-size:1.13rem; font-weight:750; }
+    .date { color:var(--muted); font-size:.85rem; margin-left:6px; font-weight:500; }
+    .status {
+      padding:5px 9px; border-radius:999px; background:var(--soft);
+      color:var(--muted); font-size:.8rem; white-space:nowrap;
+    }
+    .status.done { background:var(--green-soft); color:var(--green); }
+    .status.rescue { background:var(--yellow-soft); color:var(--yellow); }
+    .row {
+      display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
+      margin-top:12px;
+    }
+    .steps-input {
+      width:128px; min-height:46px; border:1px solid var(--line); border-radius:13px;
+      padding:9px 10px; background:white; text-align:right; font-size:1.08rem;
+    }
+    .label { font-weight:600; }
+    .helper { color:var(--muted); font-size:.82rem; margin-top:2px; }
+    .checkrow {
+      display:flex; align-items:flex-start; gap:10px; min-height:44px;
+      padding:10px 11px; margin-top:9px; border-radius:13px; background:var(--soft);
+    }
+    .checkrow input[type=checkbox] {
+      width:22px; height:22px; margin:0; flex:0 0 auto; accent-color:var(--green);
+    }
+    .checkrow .ct { flex:1; }
+    .checkrow .ct strong { display:block; font-size:.96rem; }
+    .checkrow .ct small { display:block; color:var(--muted); margin-top:2px; }
+    .checkrow.rescue { background:var(--yellow-soft); }
+    .exercise-list { margin-top:9px; }
+    .exercise-list.disabled { opacity:.45; }
+    .exercise-list.disabled input { pointer-events:none; }
+    .rescue-msg {
+      display:none; margin-top:9px; padding:11px 12px; border-radius:13px;
+      background:var(--yellow-soft); color:#604c14; font-weight:600;
+    }
+    .rescue-msg.show { display:block; }
+    .empty-ex { color:var(--muted); font-size:.9rem; padding:10px 2px 2px; }
+    .statsline {
+      display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;
+    }
+    .pill {
+      background:var(--soft); border-radius:999px; padding:7px 10px;
+      font-size:.84rem;
+    }
+    details { border-top:1px solid var(--line); margin-top:14px; padding-top:12px; }
+    details summary { cursor:pointer; font-weight:700; }
+    .guide { display:grid; gap:8px; margin-top:10px; }
+    .guide-item { padding:11px 12px; background:var(--soft); border-radius:13px; }
+    .guide-item strong { display:block; }
+    .guide-item small { color:var(--muted); }
+    .exportgrid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .exportgrid .btn { width:100%; }
+    .notice {
+      padding:12px 13px; border-radius:14px; margin-top:11px; font-size:.86rem;
+      background:var(--blue-soft);
+    }
+    .notice.warn { background:var(--yellow-soft); }
+    .principles { background:var(--blue-soft); }
+    .principles ul { margin:8px 0 0; padding-left:20px; }
+    .principles li { margin:6px 0; }
+    .footer { text-align:center; color:var(--muted); font-size:.78rem; margin-top:18px; }
+    .hidden { display:none !important; }
+    @media (max-width:520px) {
+      .summary-grid { grid-template-columns:1fr; }
+      .goalbox { text-align:left; display:flex; justify-content:space-between; align-items:center; }
+      .goalbox .n { margin-left:10px; }
+      .row { grid-template-columns:1fr; gap:7px; }
+      .steps-input { width:100%; text-align:left; }
+      .exportgrid { grid-template-columns:1fr; }
+      h1 { font-size:1.35rem; }
+    }
+    @media print {
+      body { background:white; }
+      .wrap { width:100%; padding:0; }
+      .nav,.export-actions,.iconbtn,#todayBtn,.section-help { display:none !important; }
+      .card,.day { break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Moj ritam ♡</h1>
+        <div id="weekRange" class="weekline"></div>
+      </div>
+      <div class="nav">
+        <button class="btn soft hidden" id="installBtn" type="button">Nainstalovat</button>
+        <button class="iconbtn" id="prevWeek" aria-label="Předchozí týden">‹</button>
+        <button class="iconbtn" id="nextWeek" aria-label="Další týden">›</button>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="summary-grid">
+        <div class="summary-main">
+          <div id="progressTitle" class="bigline">Máš splněno <strong>0 %</strong> týdne.</div>
+          <div class="progress" aria-label="Týdenní pokrok"><div id="progressBar"></div></div>
+          <div id="progressNumbers" class="sub">0 z 46 200 kroků.</div>
+          <div id="cheer" class="cheer">Každý krok se počítá.</div>
+        </div>
+        <div class="goalbox">
+          <div>
+            <div class="tiny">Orientační cíl</div>
+            <div class="n">46 200</div>
+          </div>
+          <div class="tiny">6 600 × 7 dní</div>
+        </div>
+      </div>
+      <div class="statsline">
+        <div class="pill" id="exerciseStat">Cviky: 0 z 14</div>
+        <div class="pill" id="walkRescueStat">Záchranné dny – chůze: 0</div>
+        <div class="pill" id="exerciseRescueStat">Záchranné dny – cviky: 0</div>
+      </div>
+    </section>
+
+    <div class="section-title">
+      <h2>👣 Kroky & mini cviky</h2>
+      <button class="btn soft" id="todayBtn">Tento týden</button>
+    </div>
+
+    <div id="days"></div>
+
+    <section class="card">
+      <div class="section-title" style="margin:0 0 8px">
+        <h2>Jak na cviky</h2>
+      </div>
+      <div class="guide">
+        <div class="guide-item">
+          <strong>Kliky o stůl · 5×</strong>
+          <small>Ruce zhruba pod rameny. Lokty míří šikmo dozadu, přibližně 30–45° od těla — ne úplně do stran. Tělo drž v jedné linii.</small>
+        </div>
+        <div class="guide-item">
+          <strong>Výpony na špičky · 5–10×</strong>
+          <small>Postav se rovně, zvedni se na špičky a pomalu se vrať.</small>
+        </div>
+        <div class="guide-item">
+          <strong>Jemný břišní zip · 3× 3–5 s</strong>
+          <small>Lehce zatáhni břicho směrem k páteři, krátce podrž a uvolni. Bez zadržování dechu.</small>
+        </div>
+        <div class="guide-item">
+          <strong>Zvedání kolene · 3× každá noha</strong>
+          <small>Ve stoje zvedni jedno koleno pohodlně nahoru, vrať a vystřídej strany. Můžeš se přidržet stolu.</small>
+        </div>
+        <div class="guide-item">
+          <strong>Stažení hýždí · 5× po 5 s</strong>
+          <small>Pevně, ale ne křečovitě zatni hýždě, normálně dýchej, asi 5 sekund podrž a uvolni. Jde vsedě i ve stoje.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="card export-actions">
+      <div class="section-title" style="margin:0 0 10px">
+        <h2>Export a záloha</h2>
+      </div>
+      <div class="exportgrid">
+        <button class="btn primary" id="csvBtn">Exportovat týden CSV</button>
+        <button class="btn" id="jsonBtn">Záloha všech dat JSON</button>
+        <button class="btn" id="importBtn">Importovat JSON zálohu</button>
+        <button class="btn" id="printBtn">Tisk / uložit jako PDF</button>
+      </div>
+      <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+      <div id="storageNotice" class="notice"></div>
+    </section>
+
+    <section class="card principles">
+      <strong>Principy</strong>
+      <ul>
+        <li>Není nutné udělat vše každý den.</li>
+        <li>I pár kroků a pár cviků se počítá.</li>
+        <li>Záchranný den je normální součást plánu.</li>
+        <li>Nic se další den nedohání.</li>
+      </ul>
+    </section>
+
+    <div class="footer">Moj ritam · PWA pro GitHub Pages · data zůstávají v tomto prohlížeči · JSON záloha je přenosná pojistka</div>
+  </main>
+
+<script>
+(() => {
+  'use strict';
+
+  const DAILY_GOAL = 6600;
+  const WEEK_GOAL = DAILY_GOAL * 7;
+  const STORAGE_KEY = 'tydenni_pohyb_v1';
+
+  const EXERCISES = {
+    push:  { name:'Kliky o stůl', dose:'5 opakování' },
+    calf:  { name:'Výpony na špičky', dose:'5–10 opakování' },
+    core:  { name:'Jemný břišní zip', dose:'3× 3–5 s' },
+    knee:  { name:'Zvedání kolene', dose:'3× každá noha' },
+    glute: { name:'Stažení hýždí', dose:'5× po 5 s' }
+  };
+
+  const DEFAULT_PLAN = [
+    ['push','calf','core'],            // Po
+    ['calf','core'],                   // Út
+    ['push','knee','core'],            // St
+    ['push','calf'],                   // Čt
+    ['push','calf','core','knee'],     // Pá
+    [],                                // So
+    []                                 // Ne
+  ];
+
+  const DAY_NAMES = ['Po','Út','St','Čt','Pá','So','Ne'];
+  let storageOK = true;
+  let app = { weeks:{} };
+  let viewMonday = mondayOf(new Date());
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function dateKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function cloneDate(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function mondayOf(date){
+    const d = cloneDate(date);
+    const jsDay = d.getDay();
+    const delta = jsDay === 0 ? -6 : 1-jsDay;
+    d.setDate(d.getDate()+delta);
+    return d;
+  }
+  function addDays(d,n){ const x=cloneDate(d); x.setDate(x.getDate()+n); return x; }
+  function formatDate(d){ return `${d.getDate()}. ${d.getMonth()+1}.`; }
+  function formatFull(d){ return `${d.getDate()}. ${d.getMonth()+1}. ${d.getFullYear()}`; }
+  function fmtNum(n){ return new Intl.NumberFormat('cs-CZ').format(n); }
+
+  function defaultDay(){
+    return { steps:'', walkRescue:false, exerciseRescue:false, exercises:{}, extras:[] };
+  }
+  function ensureWeek(){
+    const wk = dateKey(viewMonday);
+    if(!app.weeks[wk]){
+      app.weeks[wk] = {
+        days:Array.from({length:7}, defaultDay),
+        plan: DEFAULT_PLAN.map(day => [...day])
+      };
+    }
+    const w = app.weeks[wk];
+    if(!Array.isArray(w.plan) || w.plan.length !== 7){
+      w.plan = DEFAULT_PLAN.map(day => [...day]);
+    }
+    if(!Array.isArray(w.days)) w.days = Array.from({length:7}, defaultDay);
+    while(w.days.length < 7) w.days.push(defaultDay());
+    w.days = w.days.map((d)=>({
+      steps: d?.steps ?? '',
+      walkRescue: !!d?.walkRescue,
+      exerciseRescue: !!d?.exerciseRescue,
+      exercises: d?.exercises && typeof d.exercises === 'object' ? d.exercises : {},
+      extras: Array.isArray(d?.extras) ? d.extras : []
+    }));
+    return w;
+  }
+
+  function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed && parsed.weeks) app = parsed;
+      }
+      localStorage.setItem(STORAGE_KEY+'_test','1');
+      localStorage.removeItem(STORAGE_KEY+'_test');
+      storageOK = true;
+    } catch(e) {
+      storageOK = false;
+    }
+  }
+
+  function save(){
+    if(!storageOK) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(app)); }
+    catch(e){ storageOK=false; renderStorageNotice(); }
+  }
+
+  function renderStorageNotice(){
+    const n = document.getElementById('storageNotice');
+    if(storageOK){
+      n.className='notice';
+      n.textContent='Automatické ukládání je aktivní. Pro jistotu si občas stáhni JSON zálohu — zvlášť před změnou telefonu nebo prohlížeče.';
+    } else {
+      n.className='notice warn';
+      n.textContent='Prohlížeč nepovolil spolehlivé trvalé úložiště. Stránka funguje dál, ale stav si pravidelně ukládej přes „Záloha všech dat JSON“.';
+    }
+  }
+
+  function plannedCountForWeek(w){
+    let total=0;
+    for(let i=0;i<7;i++){
+      if(w.days[i].exerciseRescue) continue;
+      total += w.plan[i].length;
+    }
+    return total;
+  }
+  function completedCountForWeek(w){
+    let total=0;
+    for(let i=0;i<7;i++){
+      if(w.days[i].exerciseRescue) continue;
+      for(const ex of w.plan[i]) if(w.days[i].exercises[ex]) total++;
+    }
+    return total;
+  }
+
+  function extraCountForWeek(w){
+    return w.days.reduce((sum,d)=>sum + (Array.isArray(d.extras) ? d.extras.length : 0), 0);
+  }
+
+  function updateSummary(){
+    const w=ensureWeek();
+    let steps=0, walkRescue=0, exerciseRescue=0;
+    w.days.forEach(d=>{
+      const v = Number(String(d.steps).replace(/\s/g,''));
+      if(Number.isFinite(v) && v>0) steps += Math.round(v);
+      if(d.walkRescue) walkRescue++;
+      if(d.exerciseRescue) exerciseRescue++;
+    });
+    const pct = Math.max(0, Math.round((steps/WEEK_GOAL)*100));
+    const capped = Math.min(100, pct);
+    document.getElementById('progressTitle').innerHTML =
+      steps >= WEEK_GOAL
+      ? `Týdenní cíl <strong>splněn.</strong>`
+      : `Máš splněno <strong>${pct} %</strong> týdne.`;
+    document.getElementById('progressNumbers').textContent = `${fmtNum(steps)} z ${fmtNum(WEEK_GOAL)} kroků.`;
+    document.getElementById('progressBar').style.width = `${capped}%`;
+
+    const cheer=document.getElementById('cheer');
+    if(steps >= WEEK_GOAL){
+      cheer.textContent='Týdenní cíl splněn. Všechno další je bonus.';
+    } else if(steps > 0){
+      const remain=WEEK_GOAL-steps;
+      cheer.textContent=`Skvělý základ! Ještě ${fmtNum(remain)} kroků a týdenní cíl je doma.`;
+    } else {
+      cheer.textContent='Začni prvním zapsaným dnem. Nemusí být dokonalý.';
+    }
+
+    const done=completedCountForWeek(w), planned=plannedCountForWeek(w), extras=extraCountForWeek(w);
+    document.getElementById('exerciseStat').textContent=`Cviky: ${done} z ${planned}${extras ? ` + ${extras} navíc` : ''}`;
+    document.getElementById('walkRescueStat').textContent=`Záchranné dny – chůze: ${walkRescue}`;
+    document.getElementById('exerciseRescueStat').textContent=`Záchranné dny – cviky: ${exerciseRescue}`;
+
+    for(let i=0;i<7;i++) updateDayStatus(i);
+  }
+
+  function updateDayStatus(i){
+    const w=ensureWeek(), d=w.days[i];
+    const status=document.getElementById(`status-${i}`);
+    if(!status) return;
+    if(d.walkRescue){
+      status.className='status rescue';
+      status.textContent='Záchranný den ✓';
+    } else if(Number(d.steps)>0) {
+      status.className='status done';
+      status.textContent='Kroky zapsány ✓';
+    } else {
+      status.className='status';
+      status.textContent='Ještě otevřený';
+    }
+  }
+
+  function renderWeek(){
+    const w=ensureWeek();
+    const sun=addDays(viewMonday,6);
+    document.getElementById('weekRange').textContent =
+      `${formatFull(viewMonday)} – ${formatFull(sun)}`;
+
+    const holder=document.getElementById('days');
+    holder.innerHTML='';
+
+    for(let i=0;i<7;i++){
+      const dt=addDays(viewMonday,i);
+      const d=w.days[i];
+      const wrap=document.createElement('section');
+      wrap.className='day';
+
+      const exHTML = w.plan[i].length
+        ? w.plan[i].map(ex=>{
+            const meta=EXERCISES[ex];
+            return `<label class="checkrow">
+              <input type="checkbox" class="ex-check" data-day="${i}" data-ex="${ex}" ${d.exercises[ex]?'checked':''}>
+              <span class="ct"><strong>${meta.name}</strong><small>${meta.dose}</small></span>
+            </label>`;
+          }).join('')
+        : `<div class="empty-ex">Dnes nejsou naplánované cviky. Volno se počítá taky.</div>`;
+
+      wrap.innerHTML=`
+        <div class="day-head">
+          <div class="dayname">${DAY_NAMES[i]} <span class="date">${formatDate(dt)}</span></div>
+          <div id="status-${i}" class="status">Ještě otevřený</div>
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="label">Počet kroků</div>
+            <div class="helper">Zapiš skutečnost, ne povinnost.</div>
+          </div>
+          <input class="steps-input" data-day="${i}" inputmode="numeric" pattern="[0-9]*"
+                 type="number" min="0" step="1" placeholder="např. 9850"
+                 value="${d.steps}">
+        </div>
+
+        <label class="checkrow rescue">
+          <input type="checkbox" class="walk-rescue" data-day="${i}" ${d.walkRescue?'checked':''}>
+          <span class="ct">
+            <strong>Záchranný den – chůze</strong>
+            <small>Záchranný den ✓ Stačila krátká procházka.</small>
+          </span>
+        </label>
+
+        <div style="margin-top:13px; font-weight:700;">Cviky</div>
+
+        ${w.plan[i].length ? `
+        <label class="checkrow rescue">
+          <input type="checkbox" class="exercise-rescue" data-day="${i}" ${d.exerciseRescue?'checked':''}>
+          <span class="ct">
+            <strong>Záchranný den – cviky</strong>
+            <small>Dnes stačí odpočinek. Nic se nedohání.</small>
+          </span>
+        </label>` : ''}
+
+        <div id="exercise-list-${i}" class="exercise-list ${d.exerciseRescue?'disabled':''}">
+          ${exHTML}
+        </div>
+        <div id="exercise-msg-${i}" class="rescue-msg ${d.exerciseRescue?'show':''}">
+          Záchranný den – cviky ✓ Dnes stačí odpočinek.
+        </div>
+
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">
+          <div class="label">Cvik navíc</div>
+          <div class="helper">Zapisuje se k tomuto dni a nesplňuje budoucí plán.</div>
+          <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:8px;">
+            <select class="extra-select" data-day="${i}" style="min-height:44px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:white;color:var(--text);min-width:0;">
+              <option value="push">Kliky o stůl · 5×</option>
+              <option value="calf">Výpony na špičky · 5–10×</option>
+              <option value="core">Jemný břišní zip · 3× 3–5 s</option>
+              <option value="knee">Zvedání kolene · 3× každá noha</option>
+              <option value="glute">Stažení hýždí · 5× po 5 s</option>
+            </select>
+            <button type="button" class="btn add-extra" data-day="${i}">+ Přidat</button>
+          </div>
+          <div id="extra-list-${i}" style="margin-top:8px;"></div>
+        </div>
+      `;
+      holder.appendChild(wrap);
+    }
+
+
+    function renderExtras(i){
+      const d=ensureWeek().days[i];
+      const box=document.getElementById(`extra-list-${i}`);
+      if(!box) return;
+      if(!d.extras.length){
+        box.innerHTML='<div class="empty-ex">Zatím žádný cvik navíc.</div>';
+        return;
+      }
+      box.innerHTML=d.extras.map((ex,idx)=>{
+        const meta=EXERCISES[ex] || {name:ex,dose:''};
+        return `<div class="checkrow" style="margin-top:6px;">
+          <span class="ct"><strong>${meta.name} <span style="color:var(--green);">· navíc</span></strong><small>${meta.dose}</small></span>
+          <button type="button" class="btn remove-extra" data-day="${i}" data-index="${idx}" style="min-height:36px;padding:6px 9px;">Smazat</button>
+        </div>`;
+      }).join('');
+      box.querySelectorAll('.remove-extra').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const day=Number(btn.dataset.day), idx=Number(btn.dataset.index);
+          ensureWeek().days[day].extras.splice(idx,1);
+          save(); renderExtras(day); updateSummary();
+        });
+      });
+    }
+
+    for(let i=0;i<7;i++) renderExtras(i);
+
+    holder.querySelectorAll('.add-extra').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const i=Number(btn.dataset.day);
+        const select=holder.querySelector(`.extra-select[data-day="${i}"]`);
+        ensureWeek().days[i].extras.push(select.value);
+        save(); renderExtras(i); updateSummary();
+      });
+    });
+
+    holder.querySelectorAll('.steps-input').forEach(el=>{
+      el.addEventListener('input', ()=>{
+        const i=Number(el.dataset.day);
+        ensureWeek().days[i].steps=el.value;
+        save(); updateSummary();
+      });
+    });
+    holder.querySelectorAll('.walk-rescue').forEach(el=>{
+      el.addEventListener('change', ()=>{
+        const i=Number(el.dataset.day);
+        ensureWeek().days[i].walkRescue=el.checked;
+        save(); updateSummary();
+      });
+    });
+    holder.querySelectorAll('.exercise-rescue').forEach(el=>{
+      el.addEventListener('change', ()=>{
+        const i=Number(el.dataset.day);
+        const day=ensureWeek().days[i];
+        day.exerciseRescue=el.checked;
+        if(el.checked){
+          // Necháme odškrtnuté cviky v datech, ale v souhrnu se v záchranný den nepočítají.
+          // Po odškrtnutí záchranného dne se původní stav vrátí.
+        }
+        document.getElementById(`exercise-list-${i}`).classList.toggle('disabled',el.checked);
+        document.getElementById(`exercise-msg-${i}`).classList.toggle('show',el.checked);
+        save(); updateSummary();
+      });
+    });
+    holder.querySelectorAll('.ex-check').forEach(el=>{
+      el.addEventListener('change', ()=>{
+        const i=Number(el.dataset.day), ex=el.dataset.ex;
+        ensureWeek().days[i].exercises[ex]=el.checked;
+        save(); updateSummary();
+      });
+    });
+    updateSummary();
+    renderStorageNotice();
+  }
+
+  function csvEscape(v){
+    const s=String(v ?? '');
+    return /[;"\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  }
+  function downloadBlob(filename, text, type){
+    const blob=new Blob([text],{type});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function exportCSV(){
+    const w=ensureWeek(), wk=dateKey(viewMonday);
+    const rows=[[
+      'Týden od','Datum','Den','Kroky','Záchranný den – chůze','Záchranný den – cviky',
+      'Kliky o stůl','Výpony na špičky','Jemný břišní zip','Zvedání kolene','Cviky navíc'
+    ]];
+    for(let i=0;i<7;i++){
+      const d=w.days[i], dt=addDays(viewMonday,i);
+      rows.push([
+        wk, dateKey(dt), DAY_NAMES[i], d.steps || '',
+        d.walkRescue?'ANO':'NE', d.exerciseRescue?'ANO':'NE',
+        d.exercises.push?'ANO':'NE',
+        d.exercises.calf?'ANO':'NE',
+        d.exercises.core?'ANO':'NE',
+        d.exercises.knee?'ANO':'NE',
+        (d.extras || []).map(ex => EXERCISES[ex]?.name || ex).join(' | ')
+      ]);
+    }
+    const csv='\ufeff'+rows.map(r=>r.map(csvEscape).join(';')).join('\n');
+    downloadBlob(`pohyb_${wk}.csv`, csv, 'text/csv;charset=utf-8');
+  }
+
+  function exportJSON(){
+    const payload={
+      app:'Tydenni prehled pohybu',
+      version:3,
+      exportedAt:new Date().toISOString(),
+      dailyGoal:DAILY_GOAL,
+      weekGoal:WEEK_GOAL,
+      data:app
+    };
+    downloadBlob(`pohyb_zaloha_${dateKey(new Date())}.json`,
+      JSON.stringify(payload,null,2), 'application/json;charset=utf-8');
+  }
+
+  async function importJSON(file){
+    try{
+      const text=await file.text();
+      const obj=JSON.parse(text);
+      const data=obj?.data?.weeks ? obj.data : (obj?.weeks ? obj : null);
+      if(!data) throw new Error('Neplatný formát zálohy.');
+      if(!confirm('Import nahradí současná data v této stránce. Pokračovat?')) return;
+      app=data;
+      // Migrace starších záloh: při prvním otevření každému týdnu uložíme
+      // vlastní kopii tehdejšího plánu, aby budoucí změny nepřepsaly historii.
+      Object.keys(app.weeks || {}).forEach(key => {
+        const w = app.weeks[key];
+        if(!Array.isArray(w.plan) || w.plan.length !== 7){
+          w.plan = DEFAULT_PLAN.map(day => [...day]);
+        }
+      });
+      save();
+      renderWeek();
+      alert('Záloha byla načtena.');
+    } catch(e){
+      alert('Zálohu se nepodařilo načíst: '+e.message);
+    }
+  }
+
+  document.getElementById('prevWeek').addEventListener('click',()=>{
+    viewMonday=addDays(viewMonday,-7); renderWeek(); window.scrollTo({top:0,behavior:'smooth'});
+  });
+  document.getElementById('nextWeek').addEventListener('click',()=>{
+    viewMonday=addDays(viewMonday,7); renderWeek(); window.scrollTo({top:0,behavior:'smooth'});
+  });
+  document.getElementById('todayBtn').addEventListener('click',()=>{
+    viewMonday=mondayOf(new Date()); renderWeek(); window.scrollTo({top:0,behavior:'smooth'});
+  });
+  document.getElementById('csvBtn').addEventListener('click',exportCSV);
+  document.getElementById('jsonBtn').addEventListener('click',exportJSON);
+  document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change',e=>{
+    if(e.target.files && e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value='';
+  });
+  document.getElementById('printBtn').addEventListener('click',()=>window.print());
+
+
+  // PWA: registrace service workeru pro offline režim.
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    });
+  }
+
+  // Chrome/Edge: vlastní tlačítko se ukáže jen tehdy, když je instalace dostupná.
+  let deferredInstallPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installBtn.classList.remove('hidden');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBtn.classList.add('hidden');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    installBtn.classList.add('hidden');
+  });
+
+  load();
+  renderWeek();
+})();
+</script>
+</body>
+</html>
