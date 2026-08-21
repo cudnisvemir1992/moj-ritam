@@ -470,10 +470,10 @@
       const exHTML = w.plan[i].length
         ? w.plan[i].map(ex=>{
             const meta=EXERCISES[ex];
-            return `<label class="checkrow">
+            return `<div class="checkrow">
               <input type="checkbox" class="ex-check" data-day="${i}" data-ex="${ex}" ${d.exercises[ex]?'checked':''}>
               <span class="ct"><strong>${meta.name}</strong><small>${meta.dose}</small></span>
-            </label>`;
+            </div>`;
           }).join('')
         : `<div class="empty-ex">Dnes nejsou naplánované cviky. Volno se počítá taky.</div>`;
 
@@ -493,24 +493,24 @@
                  value="${d.steps}">
         </div>
 
-        <label class="checkrow rescue">
+        <div class="checkrow rescue">
           <input type="checkbox" class="walk-rescue" data-day="${i}" ${d.walkRescue?'checked':''}>
           <span class="ct">
             <strong>Záchranný den – chůze</strong>
             <small>Záchranný den ✓ Stačila krátká procházka.</small>
           </span>
-        </label>
+        </div>
 
         <div style="margin-top:13px; font-weight:700;">Cviky</div>
 
         ${w.plan[i].length ? `
-        <label class="checkrow rescue">
+        <div class="checkrow rescue">
           <input type="checkbox" class="exercise-rescue" data-day="${i}" ${d.exerciseRescue?'checked':''}>
           <span class="ct">
             <strong>Záchranný den – cviky</strong>
             <small>Dnes stačí odpočinek. Nic se nedohání.</small>
           </span>
-        </label>` : ''}
+        </div>` : ''}
 
         <div id="exercise-list-${i}" class="exercise-list ${d.exerciseRescue?'disabled':''}">
           ${exHTML}
