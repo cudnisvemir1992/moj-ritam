@@ -285,9 +285,12 @@
         <button class="btn primary" id="csvBtn">Exportovat týden CSV</button>
         <button class="btn" id="jsonBtn">Záloha všech dat JSON</button>
         <button class="btn" id="importBtn">Importovat JSON zálohu</button>
+        <button class="btn" id="stepsCsvBtn">Doplnit kroky z CSV</button>
         <button class="btn" id="printBtn">Tisk / uložit jako PDF</button>
       </div>
       <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+      <input id="stepsCsvFile" type="file" accept=".csv,text/csv" class="hidden">
+      <div class="tiny" style="margin-top:8px;">CSV kroků: datum;kroky · jen srpen 2026 · existující hodnoty se nepřepisují.</div>
       <div id="storageNotice" class="notice"></div>
     </section>
 
@@ -358,15 +361,7 @@
   function defaultDay(){
     return { steps:'', walkRescue:false, exerciseRescue:false, exercises:{}, extras:[] };
   }
-  function ensureWeek(){
-    const wk = dateKey(viewMonday);
-    if(!app.weeks[wk]){
-      app.weeks[wk] = {
-        days:Array.from({length:7}, defaultDay),
-        plan: DEFAULT_PLAN.map(day => [...day])
-      };
-    }
-    const w = app.weeks[wk];
+  function normalizeWeek(w){
     if(!Array.isArray(w.plan) || w.plan.length !== 7){
       w.plan = DEFAULT_PLAN.map(day => [...day]);
     }
@@ -380,6 +375,29 @@
       extras: Array.isArray(d?.extras) ? d.extras : []
     }));
     return w;
+  }
+  function ensureWeek(){
+    const wk = dateKey(viewMonday);
+    if(!app.weeks[wk]){
+      app.weeks[wk] = {
+        days:Array.from({length:7}, defaultDay),
+        plan: DEFAULT_PLAN.map(day => [...day])
+      };
+    }
+    return normalizeWeek(app.weeks[wk]);
+  }
+  function weekDayForDate(date){
+    const monday=mondayOf(date);
+    const wk=dateKey(monday);
+    if(!app.weeks[wk]){
+      app.weeks[wk] = {
+        days:Array.from({length:7}, defaultDay),
+        plan: DEFAULT_PLAN.map(day => [...day])
+      };
+    }
+    const w=normalizeWeek(app.weeks[wk]);
+    const i=Math.round((cloneDate(date)-monday)/(24*60*60*1000));
+    return {w,i};
   }
 
   function load(){
@@ -766,17 +784,63 @@
       if(!data) throw new Error('Neplatný formát zálohy.');
       if(!confirm('Import nahradí současná data v této stránce. Pokračovat?')) return;
       app=data;
-      Object.keys(app.weeks || {}).forEach(key => {
-        const w = app.weeks[key];
-        if(!Array.isArray(w.plan) || w.plan.length !== 7){
-          w.plan = DEFAULT_PLAN.map(day => [...day]);
-        }
-      });
+      Object.keys(app.weeks || {}).forEach(key => normalizeWeek(app.weeks[key]));
       save();
       renderWeek();
       alert('Záloha byla načtena.');
     } catch(e){
       alert('Zálohu se nepodařilo načíst: '+e.message);
+    }
+  }
+
+  async function importAugustStepsCSV(file){
+    try{
+      const text=(await file.text()).replace(/^\ufeff/,'');
+      const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+      if(!lines.length) throw new Error('CSV je prázdné.');
+
+      let added=0, existing=0, invalid=0, outside=0;
+      for(let lineNo=0; lineNo<lines.length; lineNo++){
+        const line=lines[lineNo];
+        const sep=line.includes(';') ? ';' : ',';
+        const parts=line.split(sep).map(v=>v.trim().replace(/^"|"$/g,''));
+        if(parts.length<2){ invalid++; continue; }
+
+        const rawDate=parts[0].toLowerCase();
+        const rawSteps=parts[1].toLowerCase();
+        if(lineNo===0 && (rawDate==='datum' || rawDate==='date') && (rawSteps==='kroky' || rawSteps==='steps')) continue;
+
+        if(!/^2026-08-\d{2}$/.test(parts[0])){
+          if(/^\d{4}-\d{2}-\d{2}$/.test(parts[0])) outside++;
+          else invalid++;
+          continue;
+        }
+        const date=parseDateKey(parts[0]);
+        if(date.getFullYear()!==2026 || date.getMonth()!==7 || date.getDate()<1 || date.getDate()>31){
+          outside++;
+          continue;
+        }
+        const steps=Number(String(parts[1]).replace(/\s/g,''));
+        if(!Number.isInteger(steps) || steps<0){ invalid++; continue; }
+
+        const {w,i}=weekDayForDate(date);
+        if(w.days[i].steps !== ''){
+          existing++;
+          continue;
+        }
+        w.days[i].steps=String(steps);
+        added++;
+      }
+
+      if(!added){
+        alert(`Nic se nedoplnilo. Už zapsané dny: ${existing}. Neplatné řádky: ${invalid}. Mimo srpen 2026: ${outside}.`);
+        return;
+      }
+      save();
+      renderWeek();
+      alert(`Doplněno ${added} dnů. Už zapsané dny přeskočeny: ${existing}. Neplatné řádky: ${invalid}. Mimo srpen 2026: ${outside}.`);
+    } catch(e){
+      alert('CSV se nepodařilo načíst: '+e.message);
     }
   }
 
@@ -800,6 +864,11 @@
   document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
   document.getElementById('importFile').addEventListener('change',e=>{
     if(e.target.files && e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value='';
+  });
+  document.getElementById('stepsCsvBtn').addEventListener('click',()=>document.getElementById('stepsCsvFile').click());
+  document.getElementById('stepsCsvFile').addEventListener('change',e=>{
+    if(e.target.files && e.target.files[0]) importAugustStepsCSV(e.target.files[0]);
     e.target.value='';
   });
   document.getElementById('printBtn').addEventListener('click',()=>window.print());
