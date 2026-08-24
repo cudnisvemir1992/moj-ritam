@@ -88,11 +88,11 @@
     .section-title h2 { margin:0; font-size:1.15rem; }
     .tiny { color:var(--muted); font-size:.83rem; }
     .day {
-  background:var(--card);
-  border:1.5px solid #d3d9d3;
-  border-radius:18px;
-  padding:15px;
-  margin-bottom:10px;
+      background:var(--card);
+      border:1.5px solid #d3d9d3;
+      border-radius:18px;
+      padding:15px;
+      margin-bottom:10px;
     }
     .day-head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .dayname { font-size:1.35rem; font-weight:750; }
@@ -140,6 +140,15 @@
       background:var(--soft); border-radius:999px; padding:7px 10px;
       font-size:.84rem;
     }
+    .simple-stats-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .simple-stats-head strong { font-size:1.05rem; }
+    .stats-switch { display:flex; gap:6px; }
+    .stats-switch .btn { min-height:36px; padding:6px 10px; }
+    .stats-switch .active { background:var(--green); color:white; border-color:var(--green); }
+    .simple-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .simple-stat { background:var(--soft); border-radius:15px; padding:12px; }
+    .simple-stat span { display:block; color:var(--muted); font-size:.82rem; }
+    .simple-stat strong { display:block; margin-top:4px; font-size:1.45rem; }
     details { border-top:1px solid var(--line); margin-top:14px; padding-top:12px; }
     details summary { cursor:pointer; font-weight:700; }
     .guide { display:grid; gap:8px; margin-top:10px; }
@@ -210,6 +219,27 @@
         <div class="pill" id="walkRescueStat">Záchranné dny – chůze: 0</div>
         <div class="pill" id="exerciseRescueStat">Záchranné dny – cviky: 0</div>
       </div>
+    </section>
+
+    <section class="card">
+      <div class="simple-stats-head">
+        <strong id="simpleStatsTitle">Tento týden</strong>
+        <div class="stats-switch">
+          <button type="button" class="btn active" id="statsWeekBtn">Týden</button>
+          <button type="button" class="btn" id="statsMonthBtn">Měsíc</button>
+        </div>
+      </div>
+      <div class="simple-stats-grid">
+        <div class="simple-stat">
+          <span>Průměr kroků</span>
+          <strong id="simpleStatsSteps">—</strong>
+        </div>
+        <div class="simple-stat">
+          <span>Cviky</span>
+          <strong id="simpleStatsExercises">0</strong>
+        </div>
+      </div>
+      <div id="simpleStatsNote" class="tiny" style="margin-top:9px;">Průměr jen ze zapsaných dnů.</div>
     </section>
 
     <div class="section-title">
@@ -291,22 +321,27 @@
   };
 
   const DEFAULT_PLAN = [
-    ['push','calf','core'],            // Po
-    ['calf','core'],                   // Út
-    ['push','knee','core'],            // St
-    ['push','calf'],                   // Čt
-    ['push','calf','core','knee'],     // Pá
-    [],                                // So
-    []                                 // Ne
+    ['push','calf','core'],
+    ['calf','core'],
+    ['push','knee','core'],
+    ['push','calf'],
+    ['push','calf','core','knee'],
+    [],
+    []
   ];
 
   const DAY_NAMES = ['Po','Út','St','Čt','Pá','So','Ne'];
   let storageOK = true;
   let app = { weeks:{} };
   let viewMonday = mondayOf(new Date());
+  let statsMode = 'week';
 
   function pad(n){ return String(n).padStart(2,'0'); }
   function dateKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function parseDateKey(key){
+    const [y,m,d]=String(key).split('-').map(Number);
+    return new Date(y,m-1,d);
+  }
   function cloneDate(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
   function mondayOf(date){
     const d = cloneDate(date);
@@ -400,6 +435,73 @@
     return w.days.reduce((sum,d)=>sum + (Array.isArray(d.extras) ? d.extras.length : 0), 0);
   }
 
+  function weekSimpleStats(){
+    const w=ensureWeek();
+    const steps=[];
+    let exercises=0;
+    for(let i=0;i<7;i++){
+      const d=w.days[i];
+      if(d.steps !== ''){
+        const v=Number(String(d.steps).replace(/\s/g,''));
+        if(Number.isFinite(v) && v>=0) steps.push(v);
+      }
+      if(!d.exerciseRescue){
+        for(const ex of w.plan[i]) if(d.exercises[ex]) exercises++;
+      }
+      exercises += Array.isArray(d.extras) ? d.extras.length : 0;
+    }
+    return {
+      avgSteps: steps.length ? Math.round(steps.reduce((a,b)=>a+b,0)/steps.length) : null,
+      exercises,
+      days:steps.length
+    };
+  }
+
+  function monthSimpleStats(){
+    const y=viewMonday.getFullYear(), m=viewMonday.getMonth();
+    const steps=[];
+    let exercises=0;
+    Object.entries(app.weeks || {}).forEach(([key,w])=>{
+      const monday=parseDateKey(key);
+      const plan=Array.isArray(w?.plan) && w.plan.length===7 ? w.plan : DEFAULT_PLAN;
+      const days=Array.isArray(w?.days) ? w.days : [];
+      for(let i=0;i<7;i++){
+        const dt=addDays(monday,i);
+        if(dt.getFullYear()!==y || dt.getMonth()!==m) continue;
+        const d=days[i] || defaultDay();
+        if(d.steps !== ''){
+          const v=Number(String(d.steps).replace(/\s/g,''));
+          if(Number.isFinite(v) && v>=0) steps.push(v);
+        }
+        if(!d.exerciseRescue){
+          for(const ex of plan[i] || []) if(d.exercises?.[ex]) exercises++;
+        }
+        exercises += Array.isArray(d.extras) ? d.extras.length : 0;
+      }
+    });
+    return {
+      avgSteps: steps.length ? Math.round(steps.reduce((a,b)=>a+b,0)/steps.length) : null,
+      exercises,
+      days:steps.length
+    };
+  }
+
+  function updateSimpleStats(){
+    const data=statsMode==='month' ? monthSimpleStats() : weekSimpleStats();
+    const title=document.getElementById('simpleStatsTitle');
+    const monthName=viewMonday.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+    title.textContent=statsMode==='month'
+      ? monthName.charAt(0).toUpperCase()+monthName.slice(1)
+      : `${formatDate(viewMonday)}–${formatDate(addDays(viewMonday,6))}`;
+    document.getElementById('simpleStatsSteps').textContent = data.avgSteps===null ? '—' : fmtNum(data.avgSteps);
+    document.getElementById('simpleStatsExercises').textContent = fmtNum(data.exercises);
+    document.getElementById('simpleStatsNote').textContent = data.days
+      ? `Průměr kroků z ${data.days} zapsaných ${data.days===1?'dne':'dnů'}.`
+      : 'Průměr kroků jen ze zapsaných dnů.';
+    document.getElementById('statsWeekBtn').classList.toggle('active',statsMode==='week');
+    document.getElementById('statsMonthBtn').classList.toggle('active',statsMode==='month');
+  }
+
   function updateSummary(){
     const w=ensureWeek();
     let steps=0, walkRescue=0, exerciseRescue=0;
@@ -422,8 +524,7 @@
     if(steps >= WEEK_GOAL){
       cheer.textContent='Týdenní cíl splněn. Všechno další je bonus.';
     } else if(steps > 0){
-      const remain=WEEK_GOAL-steps;
-      cheer.textContent=`Skvělý základ! Pokračuj svým tempem.`;
+      cheer.textContent='Skvělý základ! Pokračuj svým tempem.';
     } else {
       cheer.textContent='Začni prvním zapsaným dnem. Nemusí být dokonalý.';
     }
@@ -432,6 +533,7 @@
     document.getElementById('exerciseStat').textContent=`Cviky: ${done} z ${planned}${extras ? ` + ${extras} navíc` : ''}`;
     document.getElementById('walkRescueStat').textContent=`Záchranné dny – chůze: ${walkRescue}`;
     document.getElementById('exerciseRescueStat').textContent=`Záchranné dny – cviky: ${exerciseRescue}`;
+    updateSimpleStats();
 
     for(let i=0;i<7;i++) updateDayStatus(i);
   }
@@ -538,7 +640,6 @@
       holder.appendChild(wrap);
     }
 
-
     function renderExtras(i){
       const d=ensureWeek().days[i];
       const box=document.getElementById(`extra-list-${i}`);
@@ -593,10 +694,6 @@
         const i=Number(el.dataset.day);
         const day=ensureWeek().days[i];
         day.exerciseRescue=el.checked;
-        if(el.checked){
-          // Necháme odškrtnuté cviky v datech, ale v souhrnu se v záchranný den nepočítají.
-          // Po odškrtnutí záchranného dne se původní stav vrátí.
-        }
         document.getElementById(`exercise-list-${i}`).classList.toggle('disabled',el.checked);
         document.getElementById(`exercise-msg-${i}`).classList.toggle('show',el.checked);
         save(); updateSummary();
@@ -669,8 +766,6 @@
       if(!data) throw new Error('Neplatný formát zálohy.');
       if(!confirm('Import nahradí současná data v této stránce. Pokračovat?')) return;
       app=data;
-      // Migrace starších záloh: při prvním otevření každému týdnu uložíme
-      // vlastní kopii tehdejšího plánu, aby budoucí změny nepřepsaly historii.
       Object.keys(app.weeks || {}).forEach(key => {
         const w = app.weeks[key];
         if(!Array.isArray(w.plan) || w.plan.length !== 7){
@@ -694,6 +789,12 @@
   document.getElementById('todayBtn').addEventListener('click',()=>{
     viewMonday=mondayOf(new Date()); renderWeek(); window.scrollTo({top:0,behavior:'smooth'});
   });
+  document.getElementById('statsWeekBtn').addEventListener('click',()=>{
+    statsMode='week'; updateSimpleStats();
+  });
+  document.getElementById('statsMonthBtn').addEventListener('click',()=>{
+    statsMode='month'; updateSimpleStats();
+  });
   document.getElementById('csvBtn').addEventListener('click',exportCSV);
   document.getElementById('jsonBtn').addEventListener('click',exportJSON);
   document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
@@ -703,15 +804,12 @@
   });
   document.getElementById('printBtn').addEventListener('click',()=>window.print());
 
-
-  // PWA: registrace service workeru pro offline režim.
   if('serviceWorker' in navigator){
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./service-worker.js').catch(() => {});
     });
   }
 
-  // Chrome/Edge: vlastní tlačítko se ukáže jen tehdy, když je instalace dostupná.
   let deferredInstallPrompt = null;
   const installBtn = document.getElementById('installBtn');
 
