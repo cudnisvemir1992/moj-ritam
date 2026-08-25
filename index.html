@@ -29,6 +29,37 @@
       --danger:#9b4b46;
       --radius:20px;
     }
+    html[data-theme="rainbow"] {
+  --bg:#fbf8ff;
+  --card:#ffffff;
+  --soft:#f1ecfb;
+  --text:#242038;
+  --muted:#726c82;
+  --line:#dfd7ef;
+  --green:#6d5bd0;
+  --green-soft:#eeeaff;
+  --yellow:#d8845a;
+  --yellow-soft:#fff0e8;
+  --blue-soft:#e8f5fb;
+  --purple-soft:#eeeaff;
+  --danger:#b44f6a;
+}
+
+html[data-theme="candy"] {
+  --bg:#fff8fc;
+  --card:#ffffff;
+  --soft:#f8eaf2;
+  --text:#302235;
+  --muted:#7b6676;
+  --line:#efd8e5;
+  --green:#d64b8c;
+  --green-soft:#fde8f2;
+  --yellow:#d99a18;
+  --yellow-soft:#fff2c9;
+  --blue-soft:#e8efff;
+  --purple-soft:#eee9ff;
+  --danger:#b83d67;
+}
     * { box-sizing: border-box; }
     html { background:var(--bg); color-scheme:light; }
     body {
@@ -168,6 +199,62 @@
     .principles ul { margin:8px 0 0; padding-left:20px; }
     .principles li { margin:6px 0; }
     .footer { text-align:center; color:var(--muted); font-size:.78rem; margin-top:18px; }
+    .theme-list {
+  display:grid;
+  gap:9px;
+}
+
+.theme-option {
+  width:100%;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:12px;
+  align-items:center;
+  border:1px solid var(--line);
+  border-radius:15px;
+  padding:12px;
+  background:var(--card);
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+}
+
+.theme-option.selected {
+  outline:2px solid var(--green);
+  outline-offset:-2px;
+}
+
+.theme-option strong {
+  display:block;
+}
+
+.theme-option small {
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+}
+
+.theme-swatches {
+  display:flex;
+}
+
+.theme-swatches span {
+  width:25px;
+  height:25px;
+  border-radius:50%;
+  border:2px solid white;
+  margin-left:-6px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.06);
+}
+
+.theme-swatches span:first-child {
+  margin-left:0;
+}
+
+.theme-check {
+  font-size:1.2rem;
+  color:var(--green);
+}
     .hidden { display:none !important; }
     @media (max-width:520px) {
       .summary-grid { grid-template-columns:1fr; }
@@ -293,6 +380,54 @@
     </section>
 
     <section id="settingsView" class="hidden">
+      <section class="card">
+  <div class="section-title" style="margin:0 0 10px">
+    <h2>Téma</h2>
+  </div>
+
+  <div class="theme-list">
+    <button type="button" class="theme-option" data-theme-choice="green">
+      <span class="theme-swatches">
+        <span style="background:#4f8a5b"></span>
+        <span style="background:#edf6ee"></span>
+        <span style="background:#ffffff"></span>
+      </span>
+      <span>
+        <strong>Zelené</strong>
+        <small>Současný klidný vzhled</small>
+      </span>
+      <span class="theme-check">○</span>
+    </button>
+
+    <button type="button" class="theme-option" data-theme-choice="rainbow">
+      <span class="theme-swatches">
+        <span style="background:#6d5bd0"></span>
+        <span style="background:#2f94c8"></span>
+        <span style="background:#3c8d77"></span>
+        <span style="background:#d8845a"></span>
+      </span>
+      <span>
+        <strong>Duha</strong>
+        <small>Výrazné barevné akcenty</small>
+      </span>
+      <span class="theme-check">○</span>
+    </button>
+
+    <button type="button" class="theme-option" data-theme-choice="candy">
+      <span class="theme-swatches">
+        <span style="background:#d64b8c"></span>
+        <span style="background:#4d7fe8"></span>
+        <span style="background:#7a5be8"></span>
+        <span style="background:#f0b83f"></span>
+      </span>
+      <span>
+        <strong>Bonbon</strong>
+        <small>Malinová, modrá, fialová a žlutá</small>
+      </span>
+      <span class="theme-check">○</span>
+    </button>
+  </div>
+</section>
       <div class="settings-nav">
         <button class="iconbtn" id="backSettings" aria-label="Zpět">‹</button>
         <div class="label">Nastavení</div>
@@ -331,6 +466,7 @@
   const DAILY_GOAL = 6600;
   const WEEK_GOAL = DAILY_GOAL * 7;
   const STORAGE_KEY = 'tydenni_pohyb_v1';
+  const THEME_KEY = 'moj_ritam_theme_v1';
 
   const EXERCISES = {
     push:  { name:'Kliky o stůl', dose:'5 opakování' },
@@ -432,7 +568,38 @@
       storageOK = false;
     }
   }
+function applyTheme(theme){
+  const allowed = ['green','rainbow','candy'];
+  const selected = allowed.includes(theme) ? theme : 'green';
 
+  if(selected === 'green'){
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.dataset.theme = selected;
+  }
+
+  document.querySelectorAll('[data-theme-choice]').forEach(btn=>{
+    const active = btn.dataset.themeChoice === selected;
+    btn.classList.toggle('selected', active);
+    const check = btn.querySelector('.theme-check');
+    if(check) check.textContent = active ? '✓' : '○';
+  });
+}
+
+function loadTheme(){
+  let theme = 'green';
+  try {
+    theme = localStorage.getItem(THEME_KEY) || 'green';
+  } catch(e) {}
+  applyTheme(theme);
+}
+
+function setTheme(theme){
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch(e) {}
+  applyTheme(theme);
+}
   function save(){
     if(!storageOK) return;
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(app)); }
@@ -894,6 +1061,11 @@
   });
   document.getElementById('settingsBtn').addEventListener('click',showSettings);
   document.getElementById('backSettings').addEventListener('click',showMain);
+  document.querySelectorAll('[data-theme-choice]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    setTheme(btn.dataset.themeChoice);
+  });
+});
   document.getElementById('statsWeekBtn').addEventListener('click',()=>{
     statsMode='week'; updateSimpleStats();
   });
@@ -943,6 +1115,7 @@
   });
 
   load();
+  loadTheme();
   renderWeek();
 })();
 </script>
