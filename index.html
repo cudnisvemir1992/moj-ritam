@@ -380,6 +380,33 @@ html[data-theme="candy"] {
     </section>
 
     <section id="settingsView" class="hidden">
+      <div class="settings-nav">
+        <button class="iconbtn" id="backSettings" aria-label="Zpět">‹</button>
+        <div class="label">Nastavení</div>
+        <span></span>
+      </div>
+
+      <section class="card">
+        <div class="simple-stats-head">
+          <strong id="simpleStatsTitle">Tento týden</strong>
+          <div class="stats-switch">
+            <button type="button" class="btn active" id="statsWeekBtn">Týden</button>
+            <button type="button" class="btn" id="statsMonthBtn">Měsíc</button>
+          </div>
+        </div>
+        <div class="simple-stats-grid">
+          <div class="simple-stat">
+            <span>Průměr kroků</span>
+            <strong id="simpleStatsSteps">—</strong>
+          </div>
+          <div class="simple-stat">
+            <span>Cviky</span>
+            <strong id="simpleStatsExercises">0</strong>
+          </div>
+        </div>
+        <div id="simpleStatsNote" class="tiny" style="margin-top:9px;">Průměr jen ze zapsaných dnů.</div>
+      </section>
+
       <section class="card">
   <div class="section-title" style="margin:0 0 10px">
     <h2>Téma</h2>
@@ -428,32 +455,6 @@ html[data-theme="candy"] {
     </button>
   </div>
 </section>
-      <div class="settings-nav">
-        <button class="iconbtn" id="backSettings" aria-label="Zpět">‹</button>
-        <div class="label">Nastavení</div>
-        <span></span>
-      </div>
-
-      <section class="card">
-        <div class="simple-stats-head">
-          <strong id="simpleStatsTitle">Tento týden</strong>
-          <div class="stats-switch">
-            <button type="button" class="btn active" id="statsWeekBtn">Týden</button>
-            <button type="button" class="btn" id="statsMonthBtn">Měsíc</button>
-          </div>
-        </div>
-        <div class="simple-stats-grid">
-          <div class="simple-stat">
-            <span>Průměr kroků</span>
-            <strong id="simpleStatsSteps">—</strong>
-          </div>
-          <div class="simple-stat">
-            <span>Cviky</span>
-            <strong id="simpleStatsExercises">0</strong>
-          </div>
-        </div>
-        <div id="simpleStatsNote" class="tiny" style="margin-top:9px;">Průměr jen ze zapsaných dnů.</div>
-      </section>
     </section>
 
     <div class="footer">Moj ritam · PWA pro GitHub Pages · data zůstávají v tomto prohlížeči · JSON záloha je přenosná pojistka</div>
