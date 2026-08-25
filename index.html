@@ -86,6 +86,8 @@
       margin:22px 2px 10px;
     }
     .section-title h2 { margin:0; font-size:1.15rem; }
+    .settings-nav { display:grid; grid-template-columns:44px 1fr 44px; align-items:center; margin:4px 0 12px; }
+    .settings-nav .label { text-align:center; font-weight:750; }
     .tiny { color:var(--muted); font-size:.83rem; }
     .day {
       background:var(--card);
@@ -195,117 +197,128 @@
         <button class="btn soft hidden" id="installBtn" type="button">Nainstalovat</button>
         <button class="iconbtn" id="prevWeek" aria-label="Předchozí týden">‹</button>
         <button class="iconbtn" id="nextWeek" aria-label="Další týden">›</button>
+        <button class="iconbtn" id="settingsBtn" aria-label="Nastavení">⚙</button>
       </div>
     </div>
 
-    <section class="card">
-      <div class="summary-grid">
-        <div class="summary-main">
-          <div id="progressTitle" class="bigline">Máš splněno <strong>0 %</strong> týdne.</div>
-          <div class="progress" aria-label="Týdenní pokrok"><div id="progressBar"></div></div>
-          <div id="progressNumbers" class="sub">0 z 46 200 kroků.</div>
-          <div id="cheer" class="cheer">Každý krok se počítá.</div>
-        </div>
-        <div class="goalbox">
-          <div>
-            <div class="tiny">Orientační cíl</div>
-            <div class="n">46 200</div>
+    <section id="mainView">
+      <section class="card">
+        <div class="summary-grid">
+          <div class="summary-main">
+            <div id="progressTitle" class="bigline">Máš splněno <strong>0 %</strong> týdne.</div>
+            <div class="progress" aria-label="Týdenní pokrok"><div id="progressBar"></div></div>
+            <div id="progressNumbers" class="sub">0 z 46 200 kroků.</div>
+            <div id="cheer" class="cheer">Každý krok se počítá.</div>
           </div>
-          <div class="tiny">6 600 × 7 dní</div>
+          <div class="goalbox">
+            <div>
+              <div class="tiny">Orientační cíl</div>
+              <div class="n">46 200</div>
+            </div>
+            <div class="tiny">6 600 × 7 dní</div>
+          </div>
         </div>
+        <div class="statsline">
+          <div class="pill" id="exerciseStat">Cviky: 0 z 14</div>
+          <div class="pill" id="walkRescueStat">Záchranné dny – chůze: 0</div>
+          <div class="pill" id="exerciseRescueStat">Záchranné dny – cviky: 0</div>
+        </div>
+      </section>
+
+      <div class="section-title">
+        <h2>👣 Kroky & mini cviky</h2>
+        <button class="btn soft" id="todayBtn">Tento týden</button>
       </div>
-      <div class="statsline">
-        <div class="pill" id="exerciseStat">Cviky: 0 z 14</div>
-        <div class="pill" id="walkRescueStat">Záchranné dny – chůze: 0</div>
-        <div class="pill" id="exerciseRescueStat">Záchranné dny – cviky: 0</div>
-      </div>
+
+      <div id="days"></div>
+
+      <section class="card">
+        <div class="section-title" style="margin:0 0 8px">
+          <h2>Jak na cviky</h2>
+        </div>
+        <div class="guide">
+          <div class="guide-item">
+            <strong>Kliky o stůl · 5×</strong>
+            <small>Ruce zhruba pod rameny. Lokty míří šikmo dozadu, přibližně 30–45° od těla — ne úplně do stran. Tělo drž v jedné linii.</small>
+          </div>
+          <div class="guide-item">
+            <strong>Výpony na špičky · 5–10×</strong>
+            <small>Postav se rovně, zvedni se na špičky a pomalu se vrať.</small>
+          </div>
+          <div class="guide-item">
+            <strong>Jemný břišní zip · 3× 3–5 s</strong>
+            <small>Lehce zatáhni břicho směrem k páteři, krátce podrž a uvolni. Bez zadržování dechu.</small>
+          </div>
+          <div class="guide-item">
+            <strong>Zvedání kolene · 3× každá noha</strong>
+            <small>Ve stoje zvedni jedno koleno pohodlně nahoru, vrať a vystřídej strany. Můžeš se přidržet stolu.</small>
+          </div>
+          <div class="guide-item">
+            <strong>Stažení hýždí · 5× po 5 s</strong>
+            <small>Pevně, ale ne křečovitě zatni hýždě, normálně dýchej, asi 5 sekund podrž a uvolni. Jde vsedě i ve stoje.</small>
+          </div>
+          <div class="guide-item">
+            <strong>Stažení lopatek · 5× po 5 s</strong>
+            <small>Vsedě nebo ve stoje stáhnout lopatky lehce k sobě a dolů, ramena netahat k uším.</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="card export-actions">
+        <div class="section-title" style="margin:0 0 10px">
+          <h2>Export a záloha</h2>
+        </div>
+        <div class="exportgrid">
+          <button class="btn primary" id="csvBtn">Exportovat týden CSV</button>
+          <button class="btn" id="jsonBtn">Záloha všech dat JSON</button>
+          <button class="btn" id="importBtn">Importovat JSON zálohu</button>
+          <button class="btn" id="stepsCsvBtn">Doplnit kroky z CSV</button>
+          <button class="btn" id="printBtn">Tisk / uložit jako PDF</button>
+        </div>
+        <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+        <input id="stepsCsvFile" type="file" accept=".csv,text/csv" class="hidden">
+        <div class="tiny" style="margin-top:8px;">CSV kroků: datum;kroky · jen srpen 2026 · existující hodnoty se nepřepisují.</div>
+        <div id="storageNotice" class="notice"></div>
+      </section>
+
+      <section class="card principles">
+        <strong>Principy</strong>
+        <ul>
+          <li>Není nutné udělat vše každý den.</li>
+          <li>I pár kroků a pár cviků se počítá.</li>
+          <li>Záchranný den je normální součást plánu.</li>
+          <li>Nic se další den nedohání.</li>
+        </ul>
+      </section>
     </section>
 
-    <div class="section-title">
-      <h2>👣 Kroky & mini cviky</h2>
-      <button class="btn soft" id="todayBtn">Tento týden</button>
-    </div>
+    <section id="settingsView" class="hidden">
+      <div class="settings-nav">
+        <button class="iconbtn" id="backSettings" aria-label="Zpět">‹</button>
+        <div class="label">Nastavení</div>
+        <span></span>
+      </div>
 
-    <div id="days"></div>
-
-    <section class="card">
-      <div class="simple-stats-head">
-        <strong id="simpleStatsTitle">Tento týden</strong>
-        <div class="stats-switch">
-          <button type="button" class="btn active" id="statsWeekBtn">Týden</button>
-          <button type="button" class="btn" id="statsMonthBtn">Měsíc</button>
+      <section class="card">
+        <div class="simple-stats-head">
+          <strong id="simpleStatsTitle">Tento týden</strong>
+          <div class="stats-switch">
+            <button type="button" class="btn active" id="statsWeekBtn">Týden</button>
+            <button type="button" class="btn" id="statsMonthBtn">Měsíc</button>
+          </div>
         </div>
-      </div>
-      <div class="simple-stats-grid">
-        <div class="simple-stat">
-          <span>Průměr kroků</span>
-          <strong id="simpleStatsSteps">—</strong>
+        <div class="simple-stats-grid">
+          <div class="simple-stat">
+            <span>Průměr kroků</span>
+            <strong id="simpleStatsSteps">—</strong>
+          </div>
+          <div class="simple-stat">
+            <span>Cviky</span>
+            <strong id="simpleStatsExercises">0</strong>
+          </div>
         </div>
-        <div class="simple-stat">
-          <span>Cviky</span>
-          <strong id="simpleStatsExercises">0</strong>
-        </div>
-      </div>
-      <div id="simpleStatsNote" class="tiny" style="margin-top:9px;">Průměr jen ze zapsaných dnů.</div>
-    </section>
-
-    <section class="card">
-      <div class="section-title" style="margin:0 0 8px">
-        <h2>Jak na cviky</h2>
-      </div>
-      <div class="guide">
-        <div class="guide-item">
-          <strong>Kliky o stůl · 5×</strong>
-          <small>Ruce zhruba pod rameny. Lokty míří šikmo dozadu, přibližně 30–45° od těla — ne úplně do stran. Tělo drž v jedné linii.</small>
-        </div>
-        <div class="guide-item">
-          <strong>Výpony na špičky · 5–10×</strong>
-          <small>Postav se rovně, zvedni se na špičky a pomalu se vrať.</small>
-        </div>
-        <div class="guide-item">
-          <strong>Jemný břišní zip · 3× 3–5 s</strong>
-          <small>Lehce zatáhni břicho směrem k páteři, krátce podrž a uvolni. Bez zadržování dechu.</small>
-        </div>
-        <div class="guide-item">
-          <strong>Zvedání kolene · 3× každá noha</strong>
-          <small>Ve stoje zvedni jedno koleno pohodlně nahoru, vrať a vystřídej strany. Můžeš se přidržet stolu.</small>
-        </div>
-        <div class="guide-item">
-          <strong>Stažení hýždí · 5× po 5 s</strong>
-          <small>Pevně, ale ne křečovitě zatni hýždě, normálně dýchej, asi 5 sekund podrž a uvolni. Jde vsedě i ve stoje.</small>
-        </div>
-        <div class="guide-item">
-          <strong>Stažení lopatek · 5× po 5 s</strong>
-          <small>Vsedě nebo ve stoje stáhnout lopatky lehce k sobě a dolů, ramena netahat k uším.</small>
-        </div>
-      </div>
-    </section>
-
-    <section class="card export-actions">
-      <div class="section-title" style="margin:0 0 10px">
-        <h2>Export a záloha</h2>
-      </div>
-      <div class="exportgrid">
-        <button class="btn primary" id="csvBtn">Exportovat týden CSV</button>
-        <button class="btn" id="jsonBtn">Záloha všech dat JSON</button>
-        <button class="btn" id="importBtn">Importovat JSON zálohu</button>
-        <button class="btn" id="stepsCsvBtn">Doplnit kroky z CSV</button>
-        <button class="btn" id="printBtn">Tisk / uložit jako PDF</button>
-      </div>
-      <input id="importFile" type="file" accept=".json,application/json" class="hidden">
-      <input id="stepsCsvFile" type="file" accept=".csv,text/csv" class="hidden">
-      <div class="tiny" style="margin-top:8px;">CSV kroků: datum;kroky · jen srpen 2026 · existující hodnoty se nepřepisují.</div>
-      <div id="storageNotice" class="notice"></div>
-    </section>
-
-    <section class="card principles">
-      <strong>Principy</strong>
-      <ul>
-        <li>Není nutné udělat vše každý den.</li>
-        <li>I pár kroků a pár cviků se počítá.</li>
-        <li>Záchranný den je normální součást plánu.</li>
-        <li>Nic se další den nedohání.</li>
-      </ul>
+        <div id="simpleStatsNote" class="tiny" style="margin-top:9px;">Průměr jen ze zapsaných dnů.</div>
+      </section>
     </section>
 
     <div class="footer">Moj ritam · PWA pro GitHub Pages · data zůstávají v tomto prohlížeči · JSON záloha je přenosná pojistka</div>
@@ -523,6 +536,26 @@
       : 'Průměr kroků jen ze zapsaných dnů.';
     document.getElementById('statsWeekBtn').classList.toggle('active',statsMode==='week');
     document.getElementById('statsMonthBtn').classList.toggle('active',statsMode==='month');
+  }
+
+  function showSettings(){
+    document.getElementById('mainView').classList.add('hidden');
+    document.getElementById('settingsView').classList.remove('hidden');
+    document.getElementById('weekRange').classList.add('hidden');
+    document.getElementById('prevWeek').classList.add('hidden');
+    document.getElementById('nextWeek').classList.add('hidden');
+    updateSimpleStats();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function showMain(){
+    document.getElementById('settingsView').classList.add('hidden');
+    document.getElementById('mainView').classList.remove('hidden');
+    document.getElementById('weekRange').classList.remove('hidden');
+    document.getElementById('prevWeek').classList.remove('hidden');
+    document.getElementById('nextWeek').classList.remove('hidden');
+    renderWeek();
+    window.scrollTo({top:0,behavior:'smooth'});
   }
 
   function updateSummary(){
@@ -859,6 +892,8 @@
   document.getElementById('todayBtn').addEventListener('click',()=>{
     viewMonday=mondayOf(new Date()); renderWeek(); window.scrollTo({top:0,behavior:'smooth'});
   });
+  document.getElementById('settingsBtn').addEventListener('click',showSettings);
+  document.getElementById('backSettings').addEventListener('click',showMain);
   document.getElementById('statsWeekBtn').addEventListener('click',()=>{
     statsMode='week'; updateSimpleStats();
   });
