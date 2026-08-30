@@ -997,7 +997,10 @@ function setTheme(theme){
       alert('Záloha byla načtena.');
     } catch(e){
       alert('Zálohu se nepodařilo načíst: '+e.message);
-     function validIsoDate(value){
+    }
+  }
+
+  function validIsoDate(value){
     if(!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
     const [y,m,d]=value.split('-').map(Number);
     const test=new Date(y,m-1,d);
@@ -1100,7 +1103,6 @@ function setTheme(theme){
     } catch(e){
       alert('CSV se nepodařilo načíst: '+e.message);
     }
-  }   }
   }
 
   document.getElementById('prevWeek').addEventListener('click',()=>{
