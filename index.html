@@ -364,7 +364,7 @@ html[data-theme="candy"] {
         </div>
         <input id="importFile" type="file" accept=".json,application/json" class="hidden">
         <input id="stepsCsvFile" type="file" accept=".csv,text/csv" class="hidden">
-        <div class="tiny" style="margin-top:8px;">CSV kroků: datum;kroky · jen srpen 2026 · existující hodnoty se nepřepisují.</div>
+        <div class="tiny" style="margin-top:8px;">CSV kroků: datum;kroky · libovolné platné datum · existující hodnoty se nepřepisují.</div>
         <div id="storageNotice" class="notice"></div>
       </section>
 
@@ -997,58 +997,110 @@ function setTheme(theme){
       alert('Záloha byla načtena.');
     } catch(e){
       alert('Zálohu se nepodařilo načíst: '+e.message);
-    }
+     function validIsoDate(value){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const [y,m,d]=value.split('-').map(Number);
+    const test=new Date(y,m-1,d);
+    return test.getFullYear()===y && test.getMonth()===m-1 && test.getDate()===d;
   }
 
-  async function importAugustStepsCSV(file){
+  function existingStepsForDate(date){
+    const monday=mondayOf(date);
+    const wk=dateKey(monday);
+    const w=app.weeks?.[wk];
+    if(!w || !Array.isArray(w.days)) return '';
+    const i=Math.round((cloneDate(date)-monday)/(24*60*60*1000));
+    return w.days[i]?.steps ?? '';
+  }
+
+  async function importStepsCSV(file){
     try{
-      const text=(await file.text()).replace(/^\ufeff/,'');
-      const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+      const text=(await file.text()).replace(/^\ufeff/,'').replace(/\r\n?/g,'\n');
+      const lines=text.split('\n').map(line=>line.trim()).filter(Boolean);
       if(!lines.length) throw new Error('CSV je prázdné.');
 
-      let added=0, existing=0, invalid=0, outside=0;
-      for(let lineNo=0; lineNo<lines.length; lineNo++){
-        const line=lines[lineNo];
-        const sep=line.includes(';') ? ';' : ',';
-        const parts=line.split(sep).map(v=>v.trim().replace(/^"|"$/g,''));
-        if(parts.length<2){ invalid++; continue; }
+      const header=lines[0].split(';').map(v=>v.trim().toLowerCase());
+      if(header.length!==2 || header[0]!=='datum' || header[1]!=='kroky'){
+        throw new Error('Hlavička musí být přesně: datum;kroky');
+      }
 
-        const rawDate=parts[0].toLowerCase();
-        const rawSteps=parts[1].toLowerCase();
-        if(lineNo===0 && (rawDate==='datum' || rawDate==='date') && (rawSteps==='kroky' || rawSteps==='steps')) continue;
+      const rows=[];
+      const errors=[];
+      const seen=new Map();
 
-        if(!/^2026-08-\d{2}$/.test(parts[0])){
-          if(/^\d{4}-\d{2}-\d{2}$/.test(parts[0])) outside++;
-          else invalid++;
+      for(let i=1;i<lines.length;i++){
+        const parts=lines[i].split(';').map(v=>v.trim().replace(/^"|"$/g,''));
+        const rowNo=i+1;
+        if(parts.length!==2){
+          errors.push(`Řádek ${rowNo}: očekávám 2 sloupce.`);
           continue;
         }
-        const date=parseDateKey(parts[0]);
-        if(date.getFullYear()!==2026 || date.getMonth()!==7 || date.getDate()<1 || date.getDate()>31){
-          outside++;
-          continue;
-        }
-        const steps=Number(String(parts[1]).replace(/\s/g,''));
-        if(!Number.isInteger(steps) || steps<0){ invalid++; continue; }
 
-        const {w,i}=weekDayForDate(date);
-        if(w.days[i].steps !== ''){
-          existing++;
+        const [dateRaw,stepsRaw]=parts;
+        if(!validIsoDate(dateRaw)){
+          errors.push(`Řádek ${rowNo}: neplatné datum „${dateRaw}“.`);
           continue;
         }
-        w.days[i].steps=String(steps);
+        if(seen.has(dateRaw)){
+          errors.push(`Řádek ${rowNo}: datum ${dateRaw} je v souboru podruhé.`);
+          continue;
+        }
+        seen.set(dateRaw,rowNo);
+
+        if(!/^\d+$/.test(stepsRaw)){
+          errors.push(`Řádek ${rowNo}: kroky musí být celé nezáporné číslo.`);
+          continue;
+        }
+        const steps=Number(stepsRaw);
+        if(!Number.isSafeInteger(steps)){
+          errors.push(`Řádek ${rowNo}: neplatný počet kroků.`);
+          continue;
+        }
+
+        rows.push({dateRaw,date:parseDateKey(dateRaw),steps});
+      }
+
+      const existing=rows.filter(r=>existingStepsForDate(r.date)!=='').length;
+      const fresh=rows.length-existing;
+
+      if(!rows.length){
+        throw new Error(`Nenalezen žádný platný řádek. Chybné řádky: ${errors.length}.`);
+      }
+
+      const preview=[
+        'Kontrola CSV kroků:',
+        `Platné řádky: ${rows.length}`,
+        `Nové dny k doplnění: ${fresh}`,
+        `Už zapsané dny (budou přeskočeny): ${existing}`,
+        `Chybné řádky: ${errors.length}`,
+        '',
+        'Pokračovat a doplnit pouze nové dny?'
+      ].join('\n');
+
+      if(!fresh){
+        alert(preview.replace('\n\nPokračovat a doplnit pouze nové dny?','\n\nNení co doplnit.'));
+        return;
+      }
+      if(!confirm(preview)) return;
+
+      let added=0, skipped=0;
+      for(const row of rows){
+        if(existingStepsForDate(row.date)!==''){
+          skipped++;
+          continue;
+        }
+        const {w,i}=weekDayForDate(row.date);
+        w.days[i].steps=String(row.steps);
         added++;
       }
 
-      if(!added){
-        alert(`Nic se nedoplnilo. Už zapsané dny: ${existing}. Neplatné řádky: ${invalid}. Mimo srpen 2026: ${outside}.`);
-        return;
-      }
       save();
       renderWeek();
-      alert(`Doplněno ${added} dnů. Už zapsané dny přeskočeny: ${existing}. Neplatné řádky: ${invalid}. Mimo srpen 2026: ${outside}.`);
+      alert(`CSV import dokončen. Doplněno: ${added}. Už zapsané dny přeskočeny: ${skipped}. Chybné řádky: ${errors.length}.`);
     } catch(e){
       alert('CSV se nepodařilo načíst: '+e.message);
     }
+  }   }
   }
 
   document.getElementById('prevWeek').addEventListener('click',()=>{
@@ -1082,7 +1134,7 @@ function setTheme(theme){
   });
   document.getElementById('stepsCsvBtn').addEventListener('click',()=>document.getElementById('stepsCsvFile').click());
   document.getElementById('stepsCsvFile').addEventListener('change',e=>{
-    if(e.target.files && e.target.files[0]) importAugustStepsCSV(e.target.files[0]);
+    if(e.target.files && e.target.files[0]) importStepsCSV(e.target.files[0]);
     e.target.value='';
   });
   document.getElementById('printBtn').addEventListener('click',()=>window.print());
