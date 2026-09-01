@@ -394,6 +394,11 @@ html[data-theme="candy"] {
             <button type="button" class="btn" id="statsMonthBtn">Měsíc</button>
           </div>
         </div>
+        <div id="monthStatsNav" class="settings-nav hidden" style="margin:0 0 12px">
+          <button type="button" class="iconbtn" id="prevStatsMonth" aria-label="Předchozí měsíc">‹</button>
+          <div class="label">Procházet měsíce</div>
+          <button type="button" class="iconbtn" id="nextStatsMonth" aria-label="Další měsíc">›</button>
+        </div>
         <div class="simple-stats-grid">
           <div class="simple-stat">
             <span>Průměr kroků</span>
@@ -493,6 +498,7 @@ html[data-theme="candy"] {
   let app = { weeks:{} };
   let viewMonday = mondayOf(new Date());
   let statsMode = 'week';
+  let statsMonthAnchor = new Date(viewMonday.getFullYear(), viewMonday.getMonth(), 1);
 
   function pad(n){ return String(n).padStart(2,'0'); }
   function dateKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
@@ -662,7 +668,7 @@ function setTheme(theme){
   }
 
   function monthSimpleStats(){
-    const y=viewMonday.getFullYear(), m=viewMonday.getMonth();
+    const y=statsMonthAnchor.getFullYear(), m=statsMonthAnchor.getMonth();
     const steps=[];
     let exercises=0;
     Object.entries(app.weeks || {}).forEach(([key,w])=>{
@@ -693,7 +699,7 @@ function setTheme(theme){
   function updateSimpleStats(){
     const data=statsMode==='month' ? monthSimpleStats() : weekSimpleStats();
     const title=document.getElementById('simpleStatsTitle');
-    const monthName=viewMonday.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+    const monthName=statsMonthAnchor.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
     title.textContent=statsMode==='month'
       ? monthName.charAt(0).toUpperCase()+monthName.slice(1)
       : `${formatDate(viewMonday)}–${formatDate(addDays(viewMonday,6))}`;
@@ -704,6 +710,7 @@ function setTheme(theme){
       : 'Průměr kroků jen ze zapsaných dnů.';
     document.getElementById('statsWeekBtn').classList.toggle('active',statsMode==='week');
     document.getElementById('statsMonthBtn').classList.toggle('active',statsMode==='month');
+    document.getElementById('monthStatsNav').classList.toggle('hidden',statsMode!=='month');
   }
 
   function showSettings(){
@@ -1125,7 +1132,17 @@ function setTheme(theme){
     statsMode='week'; updateSimpleStats();
   });
   document.getElementById('statsMonthBtn').addEventListener('click',()=>{
-    statsMode='month'; updateSimpleStats();
+    statsMode='month';
+    statsMonthAnchor=new Date(viewMonday.getFullYear(),viewMonday.getMonth(),1);
+    updateSimpleStats();
+  });
+  document.getElementById('prevStatsMonth').addEventListener('click',()=>{
+    statsMonthAnchor=new Date(statsMonthAnchor.getFullYear(),statsMonthAnchor.getMonth()-1,1);
+    updateSimpleStats();
+  });
+  document.getElementById('nextStatsMonth').addEventListener('click',()=>{
+    statsMonthAnchor=new Date(statsMonthAnchor.getFullYear(),statsMonthAnchor.getMonth()+1,1);
+    updateSimpleStats();
   });
   document.getElementById('csvBtn').addEventListener('click',exportCSV);
   document.getElementById('jsonBtn').addEventListener('click',exportJSON);
