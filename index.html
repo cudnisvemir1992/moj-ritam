@@ -351,22 +351,6 @@ html[data-theme="candy"] {
         </div>
       </section>
 
-      <section class="card export-actions">
-        <div class="section-title" style="margin:0 0 10px">
-          <h2>Export a záloha</h2>
-        </div>
-        <div class="exportgrid">
-          <button class="btn primary" id="csvBtn">Exportovat týden CSV</button>
-          <button class="btn" id="jsonBtn">Záloha všech dat JSON</button>
-          <button class="btn" id="importBtn">Importovat JSON zálohu</button>
-          <button class="btn" id="stepsCsvBtn">Doplnit kroky z CSV</button>
-          <button class="btn" id="printBtn">Tisk / uložit jako PDF</button>
-        </div>
-        <input id="importFile" type="file" accept=".json,application/json" class="hidden">
-        <input id="stepsCsvFile" type="file" accept=".csv,text/csv" class="hidden">
-        <div class="tiny" style="margin-top:8px;">CSV kroků: datum;kroky · libovolné platné datum · existující hodnoty se nepřepisují.</div>
-        <div id="storageNotice" class="notice"></div>
-      </section>
 
       <section class="card principles">
         <strong>Principy</strong>
@@ -460,6 +444,23 @@ html[data-theme="candy"] {
     </button>
   </div>
 </section>
+
+      <section class="card export-actions">
+        <div class="section-title" style="margin:0 0 10px">
+          <h2>Data</h2>
+        </div>
+        <div class="exportgrid">
+          <button class="btn primary" id="jsonBtn">Záloha všech dat JSON</button>
+          <button class="btn" id="importBtn">Importovat JSON zálohu</button>
+          <button class="btn" id="stepsCsvBtn">Doplnit kroky z CSV</button>
+          <button class="btn" id="csvBtn">Exportovat týden CSV</button>
+          <button class="btn" id="printBtn">Tisk / uložit jako PDF</button>
+        </div>
+        <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+        <input id="stepsCsvFile" type="file" accept=".csv,text/csv" class="hidden">
+        <div class="tiny" style="margin-top:8px;">CSV kroků: datum;kroky · libovolné platné datum · existující hodnoty se nepřepisují.</div>
+        <div id="storageNotice" class="notice"></div>
+      </section>
     </section>
 
     <div class="footer">Moj ritam · PWA pro GitHub Pages · data zůstávají v tomto prohlížeči · JSON záloha je přenosná pojistka</div>
