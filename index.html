@@ -60,6 +60,21 @@ html[data-theme="candy"] {
   --purple-soft:#eee9ff;
   --danger:#b83d67;
 }
+
+html[data-theme="sea"] {
+  --bg:#f2f6fd;
+  --card:#ffffff;
+  --soft:#eaf1fb;
+  --text:#1e3765;
+  --muted:#6f83a3;
+  --line:#dce8fc;
+  --green:#4a7fe8;
+  --green-soft:#dce8fc;
+  --yellow:#7fa7f2;
+  --yellow-soft:#eaf1fb;
+  --blue-soft:#eaf1fb;
+  --purple-soft:#dce8fc;
+}
     * { box-sizing: border-box; }
     html { background:var(--bg); color-scheme:light; }
     body {
@@ -442,6 +457,20 @@ html[data-theme="candy"] {
       </span>
       <span class="theme-check">○</span>
     </button>
+
+    <button type="button" class="theme-option" data-theme-choice="sea">
+      <span class="theme-swatches">
+        <span style="background:#4a7fe8"></span>
+        <span style="background:#7fa7f2"></span>
+        <span style="background:#dce8fc"></span>
+        <span style="background:#f2f6fd"></span>
+      </span>
+      <span>
+        <strong>Moře</strong>
+        <small>Klidné světlé modré tóny</small>
+      </span>
+      <span class="theme-check">○</span>
+    </button>
   </div>
 </section>
 
@@ -577,7 +606,7 @@ html[data-theme="candy"] {
     }
   }
 function applyTheme(theme){
-  const allowed = ['green','rainbow','candy'];
+  const allowed = ['green','rainbow','candy','sea'];
   const selected = allowed.includes(theme) ? theme : 'green';
 
   if(selected === 'green'){
