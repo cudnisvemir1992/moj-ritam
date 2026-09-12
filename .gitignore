@@ -1,0 +1,22 @@
+# Moj ritam — never commit personal/local data
+
+# App exports / backups
+pohyb_zaloha_*.json
+pohyb_*.csv
+moj_ritam_kroky_*.csv
+exports/
+backups/
+data/
+
+# Secrets / local configuration
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs and OS/editor clutter
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
