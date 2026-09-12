@@ -482,9 +482,23 @@ html[data-theme="sea"] {
           <button class="btn primary" id="jsonBtn">Záloha všech dat JSON</button>
           <button class="btn" id="importBtn">Importovat JSON zálohu</button>
           <button class="btn" id="stepsCsvBtn">Doplnit kroky z CSV</button>
-          <button class="btn" id="csvBtn">Exportovat týden CSV</button>
           <button class="btn" id="printBtn">Tisk / uložit jako PDF</button>
         </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">
+          <div class="label">Export CSV za období</div>
+          <div class="helper">Vyber první a poslední den exportu.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px;">
+            <label class="tiny">Od
+              <input id="csvFrom" type="date" style="width:100%;min-height:44px;margin-top:4px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:white;color:var(--text);">
+            </label>
+            <label class="tiny">Do
+              <input id="csvTo" type="date" style="width:100%;min-height:44px;margin-top:4px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:white;color:var(--text);">
+            </label>
+          </div>
+          <button class="btn" id="csvBtn" style="width:100%;margin-top:9px;">Exportovat CSV</button>
+        </div>
+
         <input id="importFile" type="file" accept=".json,application/json" class="hidden">
         <input id="stepsCsvFile" type="file" accept=".csv,text/csv" class="hidden">
         <div class="tiny" style="margin-top:8px;">CSV kroků: datum;kroky · libovolné platné datum · existující hodnoty se nepřepisují.</div>
@@ -749,6 +763,12 @@ function setTheme(theme){
     document.getElementById('weekRange').classList.add('hidden');
     document.getElementById('prevWeek').classList.add('hidden');
     document.getElementById('nextWeek').classList.add('hidden');
+
+    const csvFrom=document.getElementById('csvFrom');
+    const csvTo=document.getElementById('csvTo');
+    if(!csvFrom.value) csvFrom.value=dateKey(viewMonday);
+    if(!csvTo.value) csvTo.value=dateKey(addDays(viewMonday,6));
+
     updateSimpleStats();
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -986,25 +1006,49 @@ function setTheme(theme){
   }
 
   function exportCSV(){
-    const w=ensureWeek(), wk=dateKey(viewMonday);
+    const fromRaw=document.getElementById('csvFrom').value;
+    const toRaw=document.getElementById('csvTo').value;
+
+    if(!validIsoDate(fromRaw) || !validIsoDate(toRaw)){
+      alert('Vyber platné datum Od i Do.');
+      return;
+    }
+
+    const from=parseDateKey(fromRaw);
+    const to=parseDateKey(toRaw);
+    if(from>to){
+      alert('Datum Od nesmí být později než datum Do.');
+      return;
+    }
+
     const rows=[[
       'Týden od','Datum','Den','Kroky','Záchranný den – chůze','Záchranný den – cviky',
       'Kliky o stůl','Výpony na špičky','Jemný břišní zip','Zvedání kolene','Cviky navíc'
     ]];
-    for(let i=0;i<7;i++){
-      const d=w.days[i], dt=addDays(viewMonday,i);
+
+    let dt=cloneDate(from);
+    while(dt<=to){
+      const monday=mondayOf(dt);
+      const wk=dateKey(monday);
+      const w=app.weeks?.[wk];
+      const i=Math.round((cloneDate(dt)-monday)/(24*60*60*1000));
+      const d=w?.days?.[i] || defaultDay();
+
       rows.push([
         wk, dateKey(dt), DAY_NAMES[i], d.steps || '',
         d.walkRescue?'ANO':'NE', d.exerciseRescue?'ANO':'NE',
-        d.exercises.push?'ANO':'NE',
-        d.exercises.calf?'ANO':'NE',
-        d.exercises.core?'ANO':'NE',
-        d.exercises.knee?'ANO':'NE',
+        d.exercises?.push?'ANO':'NE',
+        d.exercises?.calf?'ANO':'NE',
+        d.exercises?.core?'ANO':'NE',
+        d.exercises?.knee?'ANO':'NE',
         (d.extras || []).map(ex => EXERCISES[ex]?.name || ex).join(' | ')
       ]);
+
+      dt=addDays(dt,1);
     }
+
     const csv='\ufeff'+rows.map(r=>r.map(csvEscape).join(';')).join('\n');
-    downloadBlob(`pohyb_${wk}.csv`, csv, 'text/csv;charset=utf-8');
+    downloadBlob(`pohyb_${fromRaw}_${toRaw}.csv`, csv, 'text/csv;charset=utf-8');
   }
 
   function exportJSON(){
