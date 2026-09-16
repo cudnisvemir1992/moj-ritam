@@ -321,7 +321,7 @@ html[data-theme="sea"] {
           </div>
         </div>
         <div class="statsline">
-          <div class="pill" id="exerciseStat">Cviky: 0 z 14</div>
+          <div class="pill" id="exerciseStat">Cviky: 0 z 16</div>
           <div class="pill" id="walkRescueStat">Záchranné dny – chůze: 0</div>
           <div class="pill" id="exerciseRescueStat">Záchranné dny – cviky: 0</div>
         </div>
@@ -396,7 +396,19 @@ html[data-theme="sea"] {
             </div>
             <div class="guide-item">
               <strong>Zvedání kolene · 3× každá noha</strong>
-              <small>Ve stoje zvedni jedno koleno pohodlně nahoru, vrať a vystřídej strany. Můžeš se přidržet stolu.</small>
+              <small>Ve stoje zvedni pokrčené koleno před sebe a pomalu vrať chodidlo na zem.</small>
+            </div>
+            <div class="guide-item">
+              <strong>Zakopávání ve stoje · 5× každá noha</strong>
+              <small>Pokrč koleno a veď patu směrem k zadku. Pohybuj hlavně bércem, bez švihu.</small>
+            </div>
+            <div class="guide-item">
+              <strong>Unožování ve stoje · 5× každá noha</strong>
+              <small>Téměř nataženou nohu veď do strany. Špička míří dopředu, pánev zůstává rovně.</small>
+            </div>
+            <div class="guide-item">
+              <strong>Zanožování ve stoje · 5× každá noha</strong>
+              <small>Celou nohu veď z kyčle dozadu. Bez švihu a bez prohýbání v bedrech.</small>
             </div>
             <div class="guide-item">
               <strong>Stažení hýždí · 5× po 5 s</strong>
@@ -518,23 +530,28 @@ html[data-theme="sea"] {
   const THEME_KEY = 'moj_ritam_theme_v1';
 
   const EXERCISES = {
-    push:  { name:'Kliky o stůl', dose:'5 opakování' },
-    calf:  { name:'Výpony na špičky', dose:'5–10 opakování' },
-    core:  { name:'Jemný břišní zip', dose:'3× 3–5 s' },
-    knee:  { name:'Zvedání kolene', dose:'3× každá noha' },
-    glute: { name:'Stažení hýždí', dose:'5× po 5 s' },
-    scap:  { name:'Stažení lopatek', dose:'5× po 5 s' }
+    push:    { name:'Kliky o stůl', dose:'5 opakování' },
+    calf:    { name:'Výpony na špičky', dose:'5–10 opakování' },
+    core:    { name:'Jemný břišní zip', dose:'3× 3–5 s' },
+    knee:    { name:'Zvedání kolene', dose:'3× každá noha' },
+    curl:    { name:'Zakopávání ve stoje', dose:'5× každá noha' },
+    abduct:  { name:'Unožování ve stoje', dose:'5× každá noha' },
+    kickback:{ name:'Zanožování ve stoje', dose:'5× každá noha' },
+    glute:   { name:'Stažení hýždí', dose:'5× po 5 s' },
+    scap:    { name:'Stažení lopatek', dose:'5× po 5 s' }
   };
 
   const DEFAULT_PLAN = [
-    ['push','calf','core'],
-    ['calf','core'],
-    ['push','knee','core'],
-    ['push','calf'],
-    ['push','calf','core','knee'],
+    ['push','calf','knee'],
+    ['push','abduct','core'],
+    ['calf','curl','knee'],
+    ['push','abduct','core'],
+    ['push','calf','knee','curl'],
     [],
     []
   ];
+  const PLAN_VERSION = 2;
+  const PLAN_V2_START_WEEK = '2026-09-14';
 
   const DAY_NAMES = ['Po','Út','St','Čt','Pá','So','Ne'];
   let storageOK = true;
@@ -617,6 +634,16 @@ html[data-theme="sea"] {
     } catch(e) {
       storageOK = false;
     }
+  }
+
+  function migratePlanV2(){
+    if(app.planVersion === PLAN_VERSION) return;
+    const currentWeek = app.weeks?.[PLAN_V2_START_WEEK];
+    if(currentWeek){
+      currentWeek.plan = DEFAULT_PLAN.map(day => [...day]);
+    }
+    app.planVersion = PLAN_VERSION;
+    save();
   }
 function applyTheme(theme){
   const allowed = ['green','rainbow','candy','sea'];
@@ -910,6 +937,9 @@ function setTheme(theme){
               <option value="calf">Výpony na špičky · 5–10×</option>
               <option value="core">Jemný břišní zip · 3× 3–5 s</option>
               <option value="knee">Zvedání kolene · 3× každá noha</option>
+              <option value="curl">Zakopávání ve stoje · 5× každá noha</option>
+              <option value="abduct">Unožování ve stoje · 5× každá noha</option>
+              <option value="kickback">Zanožování ve stoje · 5× každá noha</option>
               <option value="glute">Stažení hýždí · 5× po 5 s</option>
               <option value="scap">Stažení lopatek · 5× po 5 s</option>
             </select>
@@ -1022,7 +1052,8 @@ function setTheme(theme){
 
     const rows=[[
       'Týden od','Datum','Den','Kroky','Záchranný den – chůze','Záchranný den – cviky',
-      'Kliky o stůl','Výpony na špičky','Jemný břišní zip','Zvedání kolene','Cviky navíc'
+      'Kliky o stůl','Výpony na špičky','Jemný břišní zip','Zvedání kolene',
+      'Zakopávání ve stoje','Unožování ve stoje','Cviky navíc'
     ]];
 
     let dt=cloneDate(from);
@@ -1040,6 +1071,8 @@ function setTheme(theme){
         d.exercises?.calf?'ANO':'NE',
         d.exercises?.core?'ANO':'NE',
         d.exercises?.knee?'ANO':'NE',
+        d.exercises?.curl?'ANO':'NE',
+        d.exercises?.abduct?'ANO':'NE',
         (d.extras || []).map(ex => EXERCISES[ex]?.name || ex).join(' | ')
       ]);
 
@@ -1072,6 +1105,7 @@ function setTheme(theme){
       if(!confirm('Import nahradí současná data v této stránce. Pokračovat?')) return;
       app=data;
       Object.keys(app.weeks || {}).forEach(key => normalizeWeek(app.weeks[key]));
+      migratePlanV2();
       save();
       renderWeek();
       alert('Záloha byla načtena.');
@@ -1260,6 +1294,7 @@ function setTheme(theme){
   });
 
   load();
+  migratePlanV2();
   loadTheme();
   renderWeek();
 })();
