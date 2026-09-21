@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f6f7f4">
+  <meta name="theme-color" content="#f6f7f4" id="themeColorMeta">
   <meta name="description" content="Moj ritam – osobní týdenní přehled kroků a mini cviků.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -27,6 +27,12 @@
       --blue-soft:#eef4fb;
       --purple-soft:#f3effa;
       --danger:#9b4b46;
+      --track:#e6e9e6;
+      --ring-track:#dfe6f6;
+      --day-line:#d3d9d3;
+      --input-bg:#ffffff;
+      --rescue-text:#604c14;
+      --on-accent:#ffffff;
       --radius:20px;
     }
     html[data-theme="rainbow"] {
@@ -75,6 +81,93 @@ html[data-theme="sea"] {
   --blue-soft:#eaf1fb;
   --purple-soft:#dce8fc;
 }
+    @media screen and (prefers-color-scheme: dark) {
+      :root {
+        --bg:#111713;
+        --card:#19211b;
+        --soft:#222c25;
+        --text:#eef4ef;
+        --muted:#adb8af;
+        --line:#344138;
+        --green:#75b982;
+        --green-soft:#203829;
+        --yellow:#e2bb61;
+        --yellow-soft:#3a321c;
+        --blue-soft:#1d2d3d;
+        --purple-soft:#2d263d;
+        --danger:#f08f87;
+        --track:#303a32;
+        --ring-track:#344138;
+        --day-line:#3a483e;
+        --input-bg:#1d2720;
+        --rescue-text:#f3dda0;
+        --on-accent:#101713;
+      }
+      html[data-theme="rainbow"] {
+        --bg:#15131c;
+        --card:#1e1b28;
+        --soft:#292439;
+        --text:#f3effa;
+        --muted:#b7aec8;
+        --line:#413a52;
+        --green:#aa99f1;
+        --green-soft:#30294d;
+        --yellow:#eca079;
+        --yellow-soft:#402a24;
+        --blue-soft:#1f3541;
+        --purple-soft:#30294d;
+        --danger:#ee8da8;
+        --track:#393246;
+        --ring-track:#403751;
+        --day-line:#443b56;
+        --input-bg:#24202e;
+        --rescue-text:#f3c3ad;
+        --on-accent:#171225;
+      }
+      html[data-theme="candy"] {
+        --bg:#1b1218;
+        --card:#261922;
+        --soft:#35232e;
+        --text:#f8eef4;
+        --muted:#c4aebc;
+        --line:#4b3542;
+        --green:#ef87b7;
+        --green-soft:#47253a;
+        --yellow:#edbd54;
+        --yellow-soft:#443719;
+        --blue-soft:#243451;
+        --purple-soft:#342b52;
+        --danger:#f080a5;
+        --track:#412d39;
+        --ring-track:#493341;
+        --day-line:#503947;
+        --input-bg:#2d1d27;
+        --rescue-text:#f3d994;
+        --on-accent:#24101a;
+      }
+      html[data-theme="sea"] {
+        --bg:#101824;
+        --card:#172334;
+        --soft:#202e42;
+        --text:#eef4ff;
+        --muted:#aabbd5;
+        --line:#334762;
+        --green:#82aaf7;
+        --green-soft:#243a60;
+        --yellow:#a8c2f5;
+        --yellow-soft:#253750;
+        --blue-soft:#20344f;
+        --purple-soft:#2b3657;
+        --danger:#f08f87;
+        --track:#2b3c52;
+        --ring-track:#334762;
+        --day-line:#3a4e69;
+        --input-bg:#1b293b;
+        --rescue-text:#dce8ff;
+        --on-accent:#101824;
+      }
+      html { color-scheme:dark; }
+    }
     * { box-sizing: border-box; }
     html { background:var(--bg); color-scheme:light; }
     body {
@@ -102,7 +195,7 @@ html[data-theme="sea"] {
       border-radius:14px; min-height:44px; padding:9px 12px;
     }
     .iconbtn { min-width:44px; font-size:1.2rem; padding:8px 10px; }
-    .btn.primary { background:var(--green); color:white; border-color:var(--green); }
+    .btn.primary { background:var(--green); color:var(--on-accent); border-color:var(--green); }
     .btn.soft { background:var(--soft); }
     .card {
       background:var(--card);
@@ -121,7 +214,7 @@ html[data-theme="sea"] {
       min-width:125px;
     }
     .goalbox .n { font-size:1.35rem; font-weight:750; color:var(--green); }
-    .progress { height:12px; background:#e6e9e6; border-radius:99px; overflow:hidden; margin:13px 0 8px; }
+    .progress { height:12px; background:var(--track); border-radius:99px; overflow:hidden; margin:13px 0 8px; }
     .progress > div { height:100%; background:var(--green); width:0%; transition:width .2s ease; }
     .cheer {
       margin-top:12px; padding:12px 13px; background:var(--green-soft);
@@ -134,7 +227,7 @@ html[data-theme="sea"] {
     .progress-ring {
       --pct:0;
       width:118px; height:118px; margin:0 auto; border-radius:50%;
-      background:conic-gradient(var(--green) calc(var(--pct) * 1%), #dfe6f6 0);
+      background:conic-gradient(var(--green) calc(var(--pct) * 1%), var(--ring-track) 0);
       display:grid; place-items:center;
     }
     .progress-ring-inner {
@@ -150,7 +243,7 @@ html[data-theme="sea"] {
     }
     .summary-label { font-size:1rem; font-weight:700; }
     .summary-value { font-size:1rem; font-weight:750; color:var(--text); }
-    .summary-side .progress { margin:0; background:#dfe6f6; }
+    .summary-side .progress { margin:0; background:var(--ring-track); }
     .summary-side .cheer { margin-top:8px; padding:8px 10px; font-size:.92rem; }
     .day-tabs {
       display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; margin-bottom:10px;
@@ -159,7 +252,7 @@ html[data-theme="sea"] {
       min-height:48px; border:1px solid var(--line); border-radius:16px; background:var(--card);
       color:var(--text); font-weight:700; padding:10px 4px; text-align:center;
     }
-    .day-tab.active { background:var(--green); border-color:var(--green); color:white; }
+    .day-tab.active { background:var(--green); border-color:var(--green); color:var(--on-accent); }
     .selected-day-label {
       display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0 12px;
       color:var(--text); font-weight:800; font-size:1.4rem;
@@ -183,7 +276,7 @@ html[data-theme="sea"] {
     .tiny { color:var(--muted); font-size:.83rem; }
     .day {
       background:var(--card);
-      border:1.5px solid #d3d9d3;
+      border:1.5px solid var(--day-line);
       border-radius:18px;
       padding:15px;
       margin-bottom:10px;
@@ -203,7 +296,7 @@ html[data-theme="sea"] {
     }
     .steps-input {
       width:128px; min-height:46px; border:1px solid var(--line); border-radius:13px;
-      padding:9px 10px; background:white; text-align:right; font-size:1.08rem;
+      padding:9px 10px; background:var(--input-bg); color:var(--text); text-align:right; font-size:1.08rem;
     }
     .label { font-weight:600; }
     .helper { color:var(--muted); font-size:.82rem; margin-top:2px; }
@@ -223,7 +316,7 @@ html[data-theme="sea"] {
     .exercise-list.disabled input { pointer-events:none; }
     .rescue-msg {
       display:none; margin-top:9px; padding:11px 12px; border-radius:13px;
-      background:var(--yellow-soft); color:#604c14; font-weight:600;
+      background:var(--yellow-soft); color:var(--rescue-text); font-weight:600;
     }
     .rescue-msg.show { display:block; }
     .empty-ex { color:var(--muted); font-size:.9rem; padding:10px 2px 2px; }
@@ -238,7 +331,7 @@ html[data-theme="sea"] {
     .simple-stats-head strong { font-size:1.05rem; }
     .stats-switch { display:flex; gap:6px; }
     .stats-switch .btn { min-height:36px; padding:6px 10px; }
-    .stats-switch .active { background:var(--green); color:white; border-color:var(--green); }
+    .stats-switch .active { background:var(--green); color:var(--on-accent); border-color:var(--green); }
     .simple-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .simple-stat { background:var(--soft); border-radius:15px; padding:12px; }
     .simple-stat span { display:block; color:var(--muted); font-size:.82rem; }
@@ -577,10 +670,10 @@ html[data-theme="sea"] {
           <div class="helper">Vyber první a poslední den exportu.</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px;">
             <label class="tiny">Od
-              <input id="csvFrom" type="date" style="width:100%;min-height:44px;margin-top:4px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:white;color:var(--text);">
+              <input id="csvFrom" type="date" style="width:100%;min-height:44px;margin-top:4px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:var(--input-bg);color:var(--text);">
             </label>
             <label class="tiny">Do
-              <input id="csvTo" type="date" style="width:100%;min-height:44px;margin-top:4px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:white;color:var(--text);">
+              <input id="csvTo" type="date" style="width:100%;min-height:44px;margin-top:4px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:var(--input-bg);color:var(--text);">
             </label>
           </div>
           <button class="btn" id="csvBtn" style="width:100%;margin-top:9px;">Exportovat CSV</button>
@@ -737,12 +830,19 @@ function applyTheme(theme){
     document.documentElement.dataset.theme = selected;
   }
 
+  updateThemeColor();
+
   document.querySelectorAll('[data-theme-choice]').forEach(btn=>{
     const active = btn.dataset.themeChoice === selected;
     btn.classList.toggle('selected', active);
     const check = btn.querySelector('.theme-check');
     if(check) check.textContent = active ? '✓' : '○';
   });
+}
+
+function updateThemeColor(){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f6f7f4';
+  document.getElementById('themeColorMeta').setAttribute('content', color);
 }
 
 function loadTheme(){
@@ -1039,7 +1139,7 @@ function setTheme(theme){
         <div class="label">Cvik navíc</div>
         <div class="helper">Zapisuje se k tomuto dni a nesplňuje budoucí plán.</div>
         <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:8px;">
-          <select class="extra-select" data-day="${i}" style="min-height:44px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:white;color:var(--text);min-width:0;">
+          <select class="extra-select" data-day="${i}" style="min-height:44px;border:1px solid var(--line);border-radius:13px;padding:8px 10px;background:var(--input-bg);color:var(--text);min-width:0;">
             <option value="push">Kliky o stůl · 5×</option>
             <option value="calf">Výpony na špičky · 5–10×</option>
             <option value="core">Jemný břišní zip · 3× 3–5 s</option>
@@ -1401,6 +1501,8 @@ function setTheme(theme){
     deferredInstallPrompt = null;
     installBtn.classList.add('hidden');
   });
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeColor);
 
   load();
   migratePlanV2();
