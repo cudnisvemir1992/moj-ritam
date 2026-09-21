@@ -32,7 +32,7 @@
       --day-line:#d3d9d3;
       --input-bg:#ffffff;
       --rescue-text:#604c14;
-      --on-accent:#ffffff;
+      --on-accent:#071009;
       --radius:20px;
     }
     html[data-theme="rainbow"] {
@@ -49,6 +49,7 @@
   --blue-soft:#e8f5fb;
   --purple-soft:#eeeaff;
   --danger:#b44f6a;
+  --on-accent:#ffffff;
 }
 
 html[data-theme="candy"] {
@@ -65,6 +66,7 @@ html[data-theme="candy"] {
   --blue-soft:#e8efff;
   --purple-soft:#eee9ff;
   --danger:#b83d67;
+  --on-accent:#1f0c16;
 }
 
 html[data-theme="sea"] {
@@ -80,6 +82,7 @@ html[data-theme="sea"] {
   --yellow-soft:#eaf1fb;
   --blue-soft:#eaf1fb;
   --purple-soft:#dce8fc;
+  --on-accent:#101824;
 }
     @media screen and (prefers-color-scheme: dark) {
       :root {
@@ -1290,12 +1293,14 @@ function setTheme(theme){
   }
 
   function exportJSON(){
+    const selectedTheme = document.documentElement.dataset.theme || 'green';
     const payload={
       app:'Tydenni prehled pohybu',
       version:3,
       exportedAt:new Date().toISOString(),
       dailyGoal:DAILY_GOAL,
       weekGoal:WEEK_GOAL,
+      theme:['green','rainbow','candy','sea'].includes(selectedTheme) ? selectedTheme : 'green',
       data:app
     };
     downloadBlob(`pohyb_zaloha_${dateKey(new Date())}.json`,
@@ -1307,12 +1312,14 @@ function setTheme(theme){
       const text=await file.text();
       const obj=JSON.parse(text);
       const data=obj?.data?.weeks ? obj.data : (obj?.weeks ? obj : null);
+      const importedTheme=['green','rainbow','candy','sea'].includes(obj?.theme) ? obj.theme : null;
       if(!data) throw new Error('Neplatný formát zálohy.');
       if(!confirm('Import nahradí současná data v této stránce. Pokračovat?')) return;
       app=data;
       Object.keys(app.weeks || {}).forEach(key => normalizeWeek(app.weeks[key]));
       migratePlanV2();
       save();
+      if(importedTheme) setTheme(importedTheme);
       renderWeek();
       alert('Záloha byla načtena.');
     } catch(e){
