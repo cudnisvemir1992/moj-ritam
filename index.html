@@ -352,6 +352,18 @@ html[data-theme="sea"] {
       background:var(--blue-soft);
     }
     .notice.warn { background:var(--yellow-soft); }
+    .data-completeness {
+      margin:0 0 12px; padding:10px 12px; border:1px solid var(--line); border-radius:14px;
+      background:var(--yellow-soft); font-size:.88rem; line-height:1.4;
+    }
+    .data-completeness.complete { background:var(--green-soft); }
+    .data-completeness details { margin:0; padding:0; border:0; }
+    .data-completeness summary { cursor:pointer; font-weight:800; }
+    .data-completeness-list { display:grid; gap:6px; margin:9px 0 0; padding:0; list-style:none; }
+    .data-completeness-day {
+      width:100%; min-height:40px; padding:8px 10px; border:1px solid var(--line); border-radius:11px;
+      background:var(--card); color:var(--text); text-align:left; cursor:pointer;
+    }
     .data-warning-dialog {
       width:min(620px,calc(100% - 24px)); border:3px solid #b42318; border-radius:20px;
       padding:0; background:var(--card); color:var(--text); box-shadow:0 22px 70px rgba(0,0,0,.34);
@@ -515,6 +527,8 @@ html[data-theme="sea"] {
           <div class="pill" id="exerciseRescueStat">Záchranné dny – cviky: 0</div>
         </div>
       </section>
+
+      <div id="dataCompleteness" class="data-completeness" aria-live="polite"></div>
 
       <div class="section-title">
         <h2>👣 Kroky & mini cviky</h2>
@@ -1062,6 +1076,7 @@ function setTheme(theme){
     document.getElementById('walkRescueStat').textContent=`Záchranné dny – chůze: ${walkRescue}`;
     document.getElementById('exerciseRescueStat').textContent=`Záchranné dny – cviky: ${exerciseRescue}`;
     updateSimpleStats();
+    renderCompletenessStatus();
 
     for(let i=0;i<7;i++) updateDayStatus(i);
   }
@@ -1280,6 +1295,71 @@ function setTheme(theme){
 
   function csvValueMissing(value){
     return value===null || value===undefined || String(value).trim()==='';
+  }
+
+  function formatDayCount(count){
+    const mod10=count%10, mod100=count%100;
+    if(count===1) return '1 den';
+    if(mod10>=2 && mod10<=4 && (mod100<12 || mod100>14)) return `${count} dny`;
+    return `${count} dní`;
+  }
+
+  function ritamDayHasData(day){
+    return !csvValueMissing(day?.steps) || !!day?.walkRescue || !!day?.exerciseRescue ||
+      Object.values(day?.exercises || {}).some(Boolean) || (Array.isArray(day?.extras) && day.extras.length>0);
+  }
+
+  function firstRitamDataDate(){
+    let first=null;
+    Object.keys(app.weeks || {}).filter(validIsoDate).forEach(weekKey=>{
+      const monday=parseDateKey(weekKey);
+      const days=app.weeks[weekKey]?.days;
+      if(!Array.isArray(days)) return;
+      for(let i=0;i<Math.min(7,days.length);i++){
+        if(!ritamDayHasData(days[i])) continue;
+        const date=addDays(monday,i);
+        if(!first || date<first) first=date;
+      }
+    });
+    return first;
+  }
+
+  function renderCompletenessStatus(){
+    const box=document.getElementById('dataCompleteness');
+    const first=firstRitamDataDate();
+    const yesterday=addDays(new Date(),-1);
+    const missing=first && first<=yesterday ? missingRitamCsvData(first,yesterday) : [];
+    box.innerHTML='';
+
+    if(!missing.length){
+      box.classList.add('complete');
+      box.textContent='✓ Data do včerejška jsou kompletní';
+      return;
+    }
+
+    box.classList.remove('complete');
+    const details=document.createElement('details');
+    const summary=document.createElement('summary');
+    summary.textContent=`⚠ Chybí data za ${formatDayCount(missing.length)}`;
+    const list=document.createElement('ul');
+    list.className='data-completeness-list';
+    missing.forEach(date=>{
+      const li=document.createElement('li');
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='data-completeness-day';
+      button.textContent=`${date.getDate()}. ${date.getMonth()+1}. ${date.getFullYear()} – kroky`;
+      button.addEventListener('click',()=>{
+        viewMonday=mondayOf(date);
+        selectedDayIndex=dayIndexFromDate(date);
+        renderWeek();
+        window.scrollTo({top:0,behavior:'smooth'});
+      });
+      li.appendChild(button);
+      list.appendChild(li);
+    });
+    details.append(summary,list);
+    box.appendChild(details);
   }
 
   function missingRitamCsvData(from,to){
