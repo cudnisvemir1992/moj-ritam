@@ -352,6 +352,24 @@ html[data-theme="sea"] {
       background:var(--blue-soft);
     }
     .notice.warn { background:var(--yellow-soft); }
+    .data-warning-dialog {
+      width:min(620px,calc(100% - 24px)); border:3px solid #b42318; border-radius:20px;
+      padding:0; background:var(--card); color:var(--text); box-shadow:0 22px 70px rgba(0,0,0,.34);
+    }
+    .data-warning-dialog::backdrop { background:rgba(30,5,5,.68); }
+    .data-warning-head { padding:16px 18px; background:#b42318; color:#fff; }
+    .data-warning-title { margin:0; font-size:1.15rem; line-height:1.25; font-weight:900; }
+    .data-warning-body { padding:17px; }
+    .data-warning-body p { margin:0 0 12px; line-height:1.45; }
+    .data-warning-list {
+      max-height:42vh; overflow:auto; margin:0; padding:12px 12px 12px 34px;
+      border:1px solid #e68a82; border-radius:14px; background:#fff1ef; color:#641c17; line-height:1.5;
+    }
+    .data-warning-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:15px; }
+    .btn.warning-main { background:#b42318; color:#fff; border-color:#b42318; font-weight:800; }
+    @media screen and (prefers-color-scheme:dark) {
+      .data-warning-list { background:#3b1d1a; color:#ffd8d3; border-color:#8f3a33; }
+    }
     .principles { background:var(--blue-soft); }
     .principles ul { margin:8px 0 0; padding-left:20px; }
     .principles li { margin:6px 0; }
@@ -434,6 +452,7 @@ html[data-theme="sea"] {
       .row { grid-template-columns:1fr; gap:7px; }
       .steps-input { width:100%; text-align:left; }
       .exportgrid { grid-template-columns:1fr; }
+      .data-warning-actions { grid-template-columns:1fr; }
       h1 { font-size:1.35rem; }
     }
     @media print {
@@ -691,6 +710,20 @@ html[data-theme="sea"] {
 
     <div class="footer">Moj ritam · PWA pro GitHub Pages · data zůstávají v tomto prohlížeči · JSON záloha je přenosná pojistka</div>
   </main>
+
+  <dialog id="csvExportWarningDialog" class="data-warning-dialog" aria-labelledby="csvExportWarningTitle" aria-describedby="csvExportWarningSummary">
+    <div class="data-warning-head">
+      <h2 class="data-warning-title" id="csvExportWarningTitle">POZOR – V EXPORTU CHYBÍ DATA</h2>
+    </div>
+    <div class="data-warning-body">
+      <p id="csvExportWarningSummary"></p>
+      <ul id="csvExportWarningList" class="data-warning-list"></ul>
+      <div class="data-warning-actions">
+        <button class="btn warning-main" id="csvExportBackBtn" type="button">Zpět a doplnit</button>
+        <button class="btn" id="csvExportAnywayBtn" type="button">Exportovat i tak</button>
+      </div>
+    </div>
+  </dialog>
 
 <script>
 (() => {
@@ -1243,22 +1276,41 @@ function setTheme(theme){
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
-  function exportCSV(){
-    const fromRaw=document.getElementById('csvFrom').value;
-    const toRaw=document.getElementById('csvTo').value;
+  let pendingCsvExport=null;
 
-    if(!validIsoDate(fromRaw) || !validIsoDate(toRaw)){
-      alert('Vyber platné datum Od i Do.');
-      return;
+  function csvValueMissing(value){
+    return value===null || value===undefined || String(value).trim()==='';
+  }
+
+  function missingRitamCsvData(from,to){
+    const missing=[];
+    const today=cloneDate(new Date());
+    const checkTo=to<today?to:today;
+    for(let dt=cloneDate(from);dt<=checkTo;dt=addDays(dt,1)){
+      const monday=mondayOf(dt);
+      const w=app.weeks?.[dateKey(monday)];
+      const i=Math.round((cloneDate(dt)-monday)/(24*60*60*1000));
+      if(csvValueMissing(w?.days?.[i]?.steps)) missing.push(cloneDate(dt));
     }
+    return missing;
+  }
 
+  function showCsvExportWarning(missing){
+    document.getElementById('csvExportWarningSummary').textContent=
+      `Počet dnů bez zadaných kroků: ${missing.length}.`;
+    const list=document.getElementById('csvExportWarningList');
+    list.innerHTML='';
+    missing.forEach(date=>{
+      const li=document.createElement('li');
+      li.textContent=`${date.getDate()}. ${date.getMonth()+1}. ${date.getFullYear()} – kroky`;
+      list.appendChild(li);
+    });
+    document.getElementById('csvExportWarningDialog').showModal();
+  }
+
+  function downloadCSV(fromRaw,toRaw){
     const from=parseDateKey(fromRaw);
     const to=parseDateKey(toRaw);
-    if(from>to){
-      alert('Datum Od nesmí být později než datum Do.');
-      return;
-    }
-
     const rows=[[
       'Týden od','Datum','Den','Kroky','Záchranný den – chůze','Záchranný den – cviky',
       'Kliky o stůl','Výpony na špičky','Jemný břišní zip','Zvedání kolene',
@@ -1290,6 +1342,31 @@ function setTheme(theme){
 
     const csv='\ufeff'+rows.map(r=>r.map(csvEscape).join(';')).join('\n');
     downloadBlob(`pohyb_${fromRaw}_${toRaw}.csv`, csv, 'text/csv;charset=utf-8');
+  }
+
+  function exportCSV(){
+    const fromRaw=document.getElementById('csvFrom').value;
+    const toRaw=document.getElementById('csvTo').value;
+
+    if(!validIsoDate(fromRaw) || !validIsoDate(toRaw)){
+      alert('Vyber platné datum Od i Do.');
+      return;
+    }
+
+    const from=parseDateKey(fromRaw);
+    const to=parseDateKey(toRaw);
+    if(from>to){
+      alert('Datum Od nesmí být později než datum Do.');
+      return;
+    }
+
+    const missing=missingRitamCsvData(from,to);
+    if(missing.length){
+      pendingCsvExport={fromRaw,toRaw};
+      showCsvExportWarning(missing);
+      return;
+    }
+    downloadCSV(fromRaw,toRaw);
   }
 
   function exportJSON(){
@@ -1468,6 +1545,17 @@ function setTheme(theme){
     updateSimpleStats();
   });
   document.getElementById('csvBtn').addEventListener('click',exportCSV);
+  document.getElementById('csvExportBackBtn').addEventListener('click',()=>{
+    pendingCsvExport=null;
+    document.getElementById('csvExportWarningDialog').close();
+  });
+  document.getElementById('csvExportAnywayBtn').addEventListener('click',()=>{
+    const pending=pendingCsvExport;
+    pendingCsvExport=null;
+    document.getElementById('csvExportWarningDialog').close();
+    if(pending) downloadCSV(pending.fromRaw,pending.toRaw);
+  });
+  document.getElementById('csvExportWarningDialog').addEventListener('cancel',()=>{pendingCsvExport=null});
   document.getElementById('jsonBtn').addEventListener('click',exportJSON);
   document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
   document.getElementById('importFile').addEventListener('change',e=>{
