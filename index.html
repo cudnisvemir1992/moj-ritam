@@ -507,7 +507,7 @@ html[data-theme="sea"] {
             <div class="summary-row">
               <div class="summary-top">
                 <span class="summary-label">Kroky</span>
-                <strong id="progressNumbers" class="summary-value">0 / 46 200</strong>
+                <strong id="progressNumbers" class="summary-value">0 / 49 000</strong>
               </div>
               <div class="progress"><div id="progressBar"></div></div>
             </div>
@@ -743,10 +743,21 @@ html[data-theme="sea"] {
 (() => {
   'use strict';
 
-  const DAILY_GOAL = 6600;
-  const WEEK_GOAL = DAILY_GOAL * 7;
+  const PREVIOUS_DAILY_GOAL = 6600;
+  const CURRENT_DAILY_GOAL = 7000;
+  const DAILY_GOAL_CHANGE_DATE = '2026-10-19';
   const STORAGE_KEY = 'tydenni_pohyb_v1';
   const THEME_KEY = 'moj_ritam_theme_v1';
+
+  function dailyGoalForDate(date){
+    return dateKey(date) < DAILY_GOAL_CHANGE_DATE ? PREVIOUS_DAILY_GOAL : CURRENT_DAILY_GOAL;
+  }
+
+  function weekGoalForMonday(monday){
+    let goal=0;
+    for(let i=0;i<7;i++) goal += dailyGoalForDate(addDays(monday,i));
+    return goal;
+  }
 
   const EXERCISES = {
     push:    { name:'Kliky o stůl', dose:'5 opakování' },
@@ -1043,6 +1054,7 @@ function setTheme(theme){
 
   function updateSummary(){
     const w=ensureWeek();
+    const weekGoal=weekGoalForMonday(viewMonday);
     let steps=0, walkRescue=0, exerciseRescue=0;
     w.days.forEach(d=>{
       const v = Number(String(d.steps).replace(/\s/g,''));
@@ -1052,19 +1064,19 @@ function setTheme(theme){
     });
 
     const done=completedCountForWeek(w), planned=plannedCountForWeek(w), extras=extraCountForWeek(w);
-    const pct = Math.max(0, Math.round((steps/WEEK_GOAL)*100));
+    const pct = Math.max(0, Math.round((steps/weekGoal)*100));
     const capped = Math.min(100, pct);
     const exercisePct = planned ? Math.min(100, Math.round((done/planned)*100)) : 0;
 
     document.getElementById('progressPct').textContent = `${pct} %`;
     document.getElementById('progressRing').style.setProperty('--pct', `${capped}`);
-    document.getElementById('progressNumbers').textContent = `${fmtNum(steps)} / ${fmtNum(WEEK_GOAL)}`;
+    document.getElementById('progressNumbers').textContent = `${fmtNum(steps)} / ${fmtNum(weekGoal)}`;
     document.getElementById('progressBar').style.width = `${capped}%`;
     document.getElementById('exerciseProgressNumbers').textContent = `${done} / ${planned}`;
     document.getElementById('exerciseProgressBar').style.width = `${exercisePct}%`;
 
     const cheer=document.getElementById('cheer');
-    if(steps >= WEEK_GOAL){
+    if(steps >= weekGoal){
       cheer.textContent='Týdenní cíl splněn. Všechno další je bonus.';
     } else if(steps > 0 || done > 0 || extras > 0){
       cheer.textContent='Pokračuj svým tempem.';
@@ -1451,12 +1463,13 @@ function setTheme(theme){
 
   function exportJSON(){
     const selectedTheme = document.documentElement.dataset.theme || 'green';
+    const exportDate=new Date();
     const payload={
       app:'Tydenni prehled pohybu',
       version:3,
-      exportedAt:new Date().toISOString(),
-      dailyGoal:DAILY_GOAL,
-      weekGoal:WEEK_GOAL,
+      exportedAt:exportDate.toISOString(),
+      dailyGoal:dailyGoalForDate(exportDate),
+      weekGoal:weekGoalForMonday(mondayOf(exportDate)),
       theme:['green','rainbow','candy','sea'].includes(selectedTheme) ? selectedTheme : 'green',
       data:app
     };
