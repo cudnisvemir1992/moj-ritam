@@ -980,7 +980,7 @@ function setTheme(theme){
 
   function weekSimpleStats(){
     const w=app.weeks?.[dateKey(statsWeekAnchor)];
-    if(!w){
+    if(!w || !Array.isArray(w.days) || !w.days.some(ritamDayHasData)){
       return { avgSteps:null, exercises:null, days:0, totalSteps:null };
     }
     const plan=Array.isArray(w.plan) && w.plan.length===7 ? w.plan : DEFAULT_PLAN;
