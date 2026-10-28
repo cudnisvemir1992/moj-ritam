@@ -337,6 +337,7 @@ html[data-theme="sea"] {
     .stats-switch .active { background:var(--green); color:var(--on-accent); border-color:var(--green); }
     .simple-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .simple-stat { background:var(--soft); border-radius:15px; padding:12px; }
+    .simple-stat-wide { grid-column:1/-1; }
     .simple-stat span { display:block; color:var(--muted); font-size:.82rem; }
     .simple-stat strong { display:block; margin-top:4px; font-size:1.45rem; }
     details { border-top:1px solid var(--line); margin-top:14px; padding-top:12px; }
@@ -486,6 +487,7 @@ html[data-theme="sea"] {
         <button class="btn soft hidden" id="installBtn" type="button">Nainstalovat</button>
         <button class="iconbtn" id="prevWeek" aria-label="Předchozí týden">‹</button>
         <button class="iconbtn" id="nextWeek" aria-label="Další týden">›</button>
+        <button class="iconbtn" id="statsBtn" aria-label="Statistiky">▥</button>
         <button class="iconbtn" id="settingsBtn" aria-label="Nastavení">⚙</button>
       </div>
     </div>
@@ -550,25 +552,30 @@ html[data-theme="sea"] {
       </section>
     </section>
 
-    <section id="settingsView" class="hidden">
+    <section id="statsView" class="hidden">
       <div class="settings-nav">
-        <button class="iconbtn" id="backSettings" aria-label="Zpět">‹</button>
-        <div class="label">Nastavení</div>
+        <button class="iconbtn" id="backStats" aria-label="Zpět">‹</button>
+        <div class="label">Statistiky</div>
         <span></span>
       </div>
 
       <section class="card">
         <div class="simple-stats-head">
-          <strong id="simpleStatsTitle">Tento týden</strong>
+          <strong>Přehled období</strong>
           <div class="stats-switch">
             <button type="button" class="btn active" id="statsWeekBtn">Týden</button>
             <button type="button" class="btn" id="statsMonthBtn">Měsíc</button>
           </div>
         </div>
+        <div id="weekStatsNav" class="settings-nav" style="margin:0 0 12px">
+          <button type="button" class="iconbtn" id="prevStatsWeek" aria-label="Předchozí týden">‹</button>
+          <div class="label" id="statsWeekLabel">19. 10.–25. 10.</div>
+          <button type="button" class="iconbtn" id="nextStatsWeek" aria-label="Následující týden">›</button>
+        </div>
         <div id="monthStatsNav" class="settings-nav hidden" style="margin:0 0 12px">
           <button type="button" class="iconbtn" id="prevStatsMonth" aria-label="Předchozí měsíc">‹</button>
-          <div class="label">Procházet měsíce</div>
-          <button type="button" class="iconbtn" id="nextStatsMonth" aria-label="Další měsíc">›</button>
+          <div class="label" id="statsMonthLabel">Říjen 2026</div>
+          <button type="button" class="iconbtn" id="nextStatsMonth" aria-label="Následující měsíc">›</button>
         </div>
         <div class="simple-stats-grid">
           <div class="simple-stat">
@@ -579,9 +586,21 @@ html[data-theme="sea"] {
             <span>Cviky</span>
             <strong id="simpleStatsExercises">0</strong>
           </div>
+          <div class="simple-stat simple-stat-wide" id="weekTotalStat">
+            <span>Celkem kroků / týdenní cíl</span>
+            <strong id="simpleStatsTotal">—</strong>
+          </div>
         </div>
         <div id="simpleStatsNote" class="tiny" style="margin-top:9px;">Průměr jen ze zapsaných dnů.</div>
       </section>
+    </section>
+
+    <section id="settingsView" class="hidden">
+      <div class="settings-nav">
+        <button class="iconbtn" id="backSettings" aria-label="Zpět">‹</button>
+        <div class="label">Nastavení</div>
+        <span></span>
+      </div>
 
       <section class="card">
         <details style="border-top:0;margin-top:0;padding-top:0;">
@@ -790,6 +809,7 @@ html[data-theme="sea"] {
   let viewMonday = mondayOf(new Date());
   let selectedDayIndex = dayIndexFromDate(new Date());
   let statsMode = 'week';
+  let statsWeekAnchor = cloneDate(viewMonday);
   let statsMonthAnchor = new Date(viewMonday.getFullYear(), viewMonday.getMonth(), 1);
 
   function pad(n){ return String(n).padStart(2,'0'); }
@@ -959,24 +979,31 @@ function setTheme(theme){
   }
 
   function weekSimpleStats(){
-    const w=ensureWeek();
+    const w=app.weeks?.[dateKey(statsWeekAnchor)];
+    if(!w){
+      return { avgSteps:null, exercises:null, days:0, totalSteps:null };
+    }
+    const plan=Array.isArray(w.plan) && w.plan.length===7 ? w.plan : DEFAULT_PLAN;
+    const days=Array.isArray(w.days) ? w.days : [];
     const steps=[];
     let exercises=0;
     for(let i=0;i<7;i++){
-      const d=w.days[i];
+      const d=days[i];
+      if(!d) continue;
       if(d.steps !== ''){
         const v=Number(String(d.steps).replace(/\s/g,''));
         if(Number.isFinite(v) && v>=0) steps.push(v);
       }
       if(!d.exerciseRescue){
-        for(const ex of w.plan[i]) if(d.exercises[ex]) exercises++;
+        for(const ex of plan[i] || []) if(d.exercises?.[ex]) exercises++;
       }
       exercises += Array.isArray(d.extras) ? d.extras.length : 0;
     }
     return {
       avgSteps: steps.length ? Math.round(steps.reduce((a,b)=>a+b,0)/steps.length) : null,
       exercises,
-      days:steps.length
+      days:steps.length,
+      totalSteps:steps.reduce((a,b)=>a+b,0)
     };
   }
 
@@ -1011,23 +1038,31 @@ function setTheme(theme){
 
   function updateSimpleStats(){
     const data=statsMode==='month' ? monthSimpleStats() : weekSimpleStats();
-    const title=document.getElementById('simpleStatsTitle');
     const monthName=statsMonthAnchor.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
-    title.textContent=statsMode==='month'
-      ? monthName.charAt(0).toUpperCase()+monthName.slice(1)
-      : `${formatDate(viewMonday)}–${formatDate(addDays(viewMonday,6))}`;
+    document.getElementById('statsWeekLabel').textContent =
+      `${formatDate(statsWeekAnchor)}–${formatDate(addDays(statsWeekAnchor,6))}`;
+    document.getElementById('statsMonthLabel').textContent =
+      monthName.charAt(0).toUpperCase()+monthName.slice(1);
     document.getElementById('simpleStatsSteps').textContent = data.avgSteps===null ? '—' : fmtNum(data.avgSteps);
-    document.getElementById('simpleStatsExercises').textContent = fmtNum(data.exercises);
-    document.getElementById('simpleStatsNote').textContent = data.days
-      ? `Průměr kroků z ${data.days} zapsaných ${data.days===1?'dne':'dnů'}.`
-      : 'Průměr kroků jen ze zapsaných dnů.';
+    document.getElementById('simpleStatsExercises').textContent = data.exercises===null ? '—' : fmtNum(data.exercises);
+    document.getElementById('simpleStatsTotal').textContent = statsMode==='month' || data.totalSteps===null
+      ? '—'
+      : `${fmtNum(data.totalSteps)} / ${fmtNum(weekGoalForMonday(statsWeekAnchor))}`;
+    document.getElementById('simpleStatsNote').textContent = statsMode==='week' && data.exercises===null
+      ? 'Pro tento týden nejsou zapsaná data.'
+      : data.days
+        ? `Průměr kroků z ${data.days} zapsaných ${data.days===1?'dne':'dnů'}.`
+        : 'Průměr kroků jen ze zapsaných dnů.';
     document.getElementById('statsWeekBtn').classList.toggle('active',statsMode==='week');
     document.getElementById('statsMonthBtn').classList.toggle('active',statsMode==='month');
+    document.getElementById('weekStatsNav').classList.toggle('hidden',statsMode!=='week');
     document.getElementById('monthStatsNav').classList.toggle('hidden',statsMode!=='month');
+    document.getElementById('weekTotalStat').classList.toggle('hidden',statsMode!=='week');
   }
 
   function showSettings(){
     document.getElementById('mainView').classList.add('hidden');
+    document.getElementById('statsView').classList.add('hidden');
     document.getElementById('settingsView').classList.remove('hidden');
     document.getElementById('weekRange').classList.add('hidden');
     document.getElementById('prevWeek').classList.add('hidden');
@@ -1038,12 +1073,24 @@ function setTheme(theme){
     if(!csvFrom.value) csvFrom.value=dateKey(viewMonday);
     if(!csvTo.value) csvTo.value=dateKey(addDays(viewMonday,6));
 
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function showStats(){
+    statsWeekAnchor=cloneDate(viewMonday);
+    document.getElementById('mainView').classList.add('hidden');
+    document.getElementById('settingsView').classList.add('hidden');
+    document.getElementById('statsView').classList.remove('hidden');
+    document.getElementById('weekRange').classList.add('hidden');
+    document.getElementById('prevWeek').classList.add('hidden');
+    document.getElementById('nextWeek').classList.add('hidden');
     updateSimpleStats();
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
   function showMain(){
     document.getElementById('settingsView').classList.add('hidden');
+    document.getElementById('statsView').classList.add('hidden');
     document.getElementById('mainView').classList.remove('hidden');
     document.getElementById('weekRange').classList.remove('hidden');
     document.getElementById('prevWeek').classList.remove('hidden');
@@ -1087,7 +1134,6 @@ function setTheme(theme){
     document.getElementById('extraStat').textContent=`Cviky navíc: ${extras}`;
     document.getElementById('walkRescueStat').textContent=`Záchranné dny – chůze: ${walkRescue}`;
     document.getElementById('exerciseRescueStat').textContent=`Záchranné dny – cviky: ${exerciseRescue}`;
-    updateSimpleStats();
     renderCompletenessStatus();
 
     for(let i=0;i<7;i++) updateDayStatus(i);
@@ -1615,7 +1661,9 @@ function setTheme(theme){
     window.scrollTo({top:0,behavior:'smooth'});
   });
   document.getElementById('settingsBtn').addEventListener('click',showSettings);
+  document.getElementById('statsBtn').addEventListener('click',showStats);
   document.getElementById('backSettings').addEventListener('click',showMain);
+  document.getElementById('backStats').addEventListener('click',showMain);
   document.querySelectorAll('[data-theme-choice]').forEach(btn=>{
   btn.addEventListener('click',()=>{
     setTheme(btn.dataset.themeChoice);
@@ -1626,7 +1674,15 @@ function setTheme(theme){
   });
   document.getElementById('statsMonthBtn').addEventListener('click',()=>{
     statsMode='month';
-    statsMonthAnchor=new Date(viewMonday.getFullYear(),viewMonday.getMonth(),1);
+    statsMonthAnchor=new Date(statsWeekAnchor.getFullYear(),statsWeekAnchor.getMonth(),1);
+    updateSimpleStats();
+  });
+  document.getElementById('prevStatsWeek').addEventListener('click',()=>{
+    statsWeekAnchor=addDays(statsWeekAnchor,-7);
+    updateSimpleStats();
+  });
+  document.getElementById('nextStatsWeek').addEventListener('click',()=>{
+    statsWeekAnchor=addDays(statsWeekAnchor,7);
     updateSimpleStats();
   });
   document.getElementById('prevStatsMonth').addEventListener('click',()=>{
