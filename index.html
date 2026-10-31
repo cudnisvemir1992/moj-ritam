@@ -332,9 +332,15 @@ html[data-theme="sea"] {
     }
     .simple-stats-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
     .simple-stats-head strong { font-size:1.05rem; }
-    .stats-switch { display:flex; gap:6px; }
+    .stats-switch { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
     .stats-switch .btn { min-height:36px; padding:6px 10px; }
     .stats-switch .active { background:var(--green); color:var(--on-accent); border-color:var(--green); }
+    .custom-stats-inputs { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:12px; }
+    .custom-stats-inputs input {
+      width:100%; min-width:0; min-height:44px; margin-top:4px; padding:8px 10px;
+      border:1px solid var(--line); border-radius:13px; background:var(--input-bg); color:var(--text);
+    }
+    .custom-stats-missing-day { cursor:default; }
     .simple-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .simple-stat { background:var(--soft); border-radius:15px; padding:12px; }
     .simple-stat-wide { grid-column:1/-1; }
@@ -565,6 +571,7 @@ html[data-theme="sea"] {
           <div class="stats-switch">
             <button type="button" class="btn active" id="statsWeekBtn">Týden</button>
             <button type="button" class="btn" id="statsMonthBtn">Měsíc</button>
+            <button type="button" class="btn" id="statsCustomBtn">Vlastní</button>
           </div>
         </div>
         <div id="weekStatsNav" class="settings-nav" style="margin:0 0 12px">
@@ -577,17 +584,29 @@ html[data-theme="sea"] {
           <div class="label" id="statsMonthLabel">Říjen 2026</div>
           <button type="button" class="iconbtn" id="nextStatsMonth" aria-label="Následující měsíc">›</button>
         </div>
+        <div id="customStatsRange" class="hidden">
+          <div class="custom-stats-inputs">
+            <label class="tiny">Od
+              <input id="statsCustomFrom" type="date">
+            </label>
+            <label class="tiny">Do
+              <input id="statsCustomTo" type="date">
+            </label>
+          </div>
+          <div id="customStatsError" class="notice warn hidden" style="margin:0 0 12px;"></div>
+          <div id="customStatsCompleteness" class="data-completeness hidden"></div>
+        </div>
         <div class="simple-stats-grid">
           <div class="simple-stat">
-            <span>Průměr kroků</span>
+            <span id="simpleStatsStepsLabel">Průměr kroků</span>
             <strong id="simpleStatsSteps">—</strong>
           </div>
           <div class="simple-stat">
-            <span>Cviky</span>
+            <span id="simpleStatsExercisesLabel">Cviky</span>
             <strong id="simpleStatsExercises">0</strong>
           </div>
           <div class="simple-stat simple-stat-wide" id="weekTotalStat">
-            <span>Celkem kroků / týdenní cíl</span>
+            <span id="simpleStatsTotalLabel">Celkem kroků / týdenní cíl</span>
             <strong id="simpleStatsTotal">—</strong>
           </div>
         </div>
@@ -811,6 +830,9 @@ html[data-theme="sea"] {
   let statsMode = 'week';
   let statsWeekAnchor = cloneDate(viewMonday);
   let statsMonthAnchor = new Date(viewMonday.getFullYear(), viewMonday.getMonth(), 1);
+  let statsCustomFrom = '';
+  let statsCustomTo = '';
+  let statsCustomInitialized = false;
 
   function pad(n){ return String(n).padStart(2,'0'); }
   function dateKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
@@ -1036,28 +1058,134 @@ function setTheme(theme){
     };
   }
 
+  function customSimpleStats(from,to){
+    let totalSteps=0, days=0, totalDays=0;
+    for(let dt=cloneDate(from);dt<=to;dt=addDays(dt,1)){
+      totalDays++;
+      const monday=mondayOf(dt);
+      const w=app.weeks?.[dateKey(monday)];
+      const i=dayIndexFromDate(dt);
+      const raw=w?.days?.[i]?.steps;
+      if(csvValueMissing(raw)) continue;
+      const value=Number(String(raw).replace(/\s/g,''));
+      if(!Number.isFinite(value) || value<0) continue;
+      totalSteps+=value;
+      days++;
+    }
+    return {
+      totalSteps:days ? totalSteps : null,
+      avgSteps:days ? Math.round(totalSteps/days) : null,
+      days,
+      totalDays
+    };
+  }
+
+  function customStatsMissingDates(from,to){
+    const first=firstRitamDataDate();
+    if(!first) return [];
+    const yesterday=addDays(new Date(),-1);
+    const checkFrom=from>first ? from : first;
+    const checkTo=to<yesterday ? to : yesterday;
+    return checkFrom<=checkTo ? missingRitamCsvData(checkFrom,checkTo) : [];
+  }
+
+  function renderCustomStatsCompleteness(missing){
+    const box=document.getElementById('customStatsCompleteness');
+    box.innerHTML='';
+    box.classList.toggle('hidden',!missing.length);
+    if(!missing.length) return;
+
+    const details=document.createElement('details');
+    const summary=document.createElement('summary');
+    summary.textContent=`⚠ Chybí data za ${formatDayCount(missing.length)}`;
+    const list=document.createElement('ul');
+    list.className='data-completeness-list';
+    missing.forEach(date=>{
+      const li=document.createElement('li');
+      li.className='data-completeness-day custom-stats-missing-day';
+      li.textContent=`${formatFull(date)} – kroky`;
+      list.appendChild(li);
+    });
+    details.append(summary,list);
+    box.appendChild(details);
+  }
+
+  function renderCustomStats(){
+    const error=document.getElementById('customStatsError');
+    error.classList.add('hidden');
+
+    if(!validIsoDate(statsCustomFrom) || !validIsoDate(statsCustomTo)){
+      error.textContent='Vyber platná data Od i Do.';
+      error.classList.remove('hidden');
+      document.getElementById('simpleStatsSteps').textContent='—';
+      document.getElementById('simpleStatsExercises').textContent='—';
+      document.getElementById('simpleStatsTotal').textContent='—';
+      document.getElementById('simpleStatsNote').textContent='Zadej platné období.';
+      renderCustomStatsCompleteness([]);
+      return;
+    }
+
+    const from=parseDateKey(statsCustomFrom), to=parseDateKey(statsCustomTo);
+    if(from>to){
+      error.textContent='Datum Od nesmí být později než datum Do.';
+      error.classList.remove('hidden');
+      document.getElementById('simpleStatsSteps').textContent='—';
+      document.getElementById('simpleStatsExercises').textContent='—';
+      document.getElementById('simpleStatsTotal').textContent='—';
+      document.getElementById('simpleStatsNote').textContent='Zadej platné období.';
+      renderCustomStatsCompleteness([]);
+      return;
+    }
+
+    const data=customSimpleStats(from,to);
+    document.getElementById('simpleStatsSteps').textContent = data.totalSteps===null ? '—' : fmtNum(data.totalSteps);
+    document.getElementById('simpleStatsExercises').textContent = data.avgSteps===null ? '—' : fmtNum(data.avgSteps);
+    document.getElementById('simpleStatsTotal').textContent = `${data.days} / ${data.totalDays}`;
+    document.getElementById('simpleStatsNote').textContent = data.days
+      ? `Výpočet z ${data.days} ${data.days===1?'dne':'dnů'} s platně zadanými kroky.`
+      : 'V tomto období nejsou platně zadané kroky.';
+    renderCustomStatsCompleteness(customStatsMissingDates(from,to));
+  }
+
   function updateSimpleStats(){
-    const data=statsMode==='month' ? monthSimpleStats() : weekSimpleStats();
+    const isWeek=statsMode==='week', isMonth=statsMode==='month', isCustom=statsMode==='custom';
     const monthName=statsMonthAnchor.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
     document.getElementById('statsWeekLabel').textContent =
       `${formatDate(statsWeekAnchor)}–${formatDate(addDays(statsWeekAnchor,6))}`;
     document.getElementById('statsMonthLabel').textContent =
       monthName.charAt(0).toUpperCase()+monthName.slice(1);
+    document.getElementById('statsWeekBtn').classList.toggle('active',isWeek);
+    document.getElementById('statsMonthBtn').classList.toggle('active',isMonth);
+    document.getElementById('statsCustomBtn').classList.toggle('active',isCustom);
+    document.getElementById('weekStatsNav').classList.toggle('hidden',!isWeek);
+    document.getElementById('monthStatsNav').classList.toggle('hidden',!isMonth);
+    document.getElementById('customStatsRange').classList.toggle('hidden',!isCustom);
+    document.getElementById('weekTotalStat').classList.toggle('hidden',isMonth);
+
+    if(isCustom){
+      document.getElementById('simpleStatsStepsLabel').textContent='Celkem kroků';
+      document.getElementById('simpleStatsExercisesLabel').textContent='Průměr kroků';
+      document.getElementById('simpleStatsTotalLabel').textContent='Počet dnů s kroky';
+      renderCustomStats();
+      return;
+    }
+
+    document.getElementById('customStatsError').classList.add('hidden');
+    renderCustomStatsCompleteness([]);
+    document.getElementById('simpleStatsStepsLabel').textContent='Průměr kroků';
+    document.getElementById('simpleStatsExercisesLabel').textContent='Cviky';
+    document.getElementById('simpleStatsTotalLabel').textContent='Celkem kroků / týdenní cíl';
+    const data=isMonth ? monthSimpleStats() : weekSimpleStats();
     document.getElementById('simpleStatsSteps').textContent = data.avgSteps===null ? '—' : fmtNum(data.avgSteps);
     document.getElementById('simpleStatsExercises').textContent = data.exercises===null ? '—' : fmtNum(data.exercises);
-    document.getElementById('simpleStatsTotal').textContent = statsMode==='month' || data.totalSteps===null
+    document.getElementById('simpleStatsTotal').textContent = isMonth || data.totalSteps===null
       ? '—'
       : `${fmtNum(data.totalSteps)} / ${fmtNum(weekGoalForMonday(statsWeekAnchor))}`;
-    document.getElementById('simpleStatsNote').textContent = statsMode==='week' && data.exercises===null
+    document.getElementById('simpleStatsNote').textContent = isWeek && data.exercises===null
       ? 'Pro tento týden nejsou zapsaná data.'
       : data.days
         ? `Průměr kroků z ${data.days} zapsaných ${data.days===1?'dne':'dnů'}.`
         : 'Průměr kroků jen ze zapsaných dnů.';
-    document.getElementById('statsWeekBtn').classList.toggle('active',statsMode==='week');
-    document.getElementById('statsMonthBtn').classList.toggle('active',statsMode==='month');
-    document.getElementById('weekStatsNav').classList.toggle('hidden',statsMode!=='week');
-    document.getElementById('monthStatsNav').classList.toggle('hidden',statsMode!=='month');
-    document.getElementById('weekTotalStat').classList.toggle('hidden',statsMode!=='week');
   }
 
   function showSettings(){
@@ -1675,6 +1803,26 @@ function setTheme(theme){
   document.getElementById('statsMonthBtn').addEventListener('click',()=>{
     statsMode='month';
     statsMonthAnchor=new Date(statsWeekAnchor.getFullYear(),statsWeekAnchor.getMonth(),1);
+    updateSimpleStats();
+  });
+  document.getElementById('statsCustomBtn').addEventListener('click',()=>{
+    statsMode='custom';
+    if(!statsCustomInitialized){
+      const today=cloneDate(new Date());
+      statsCustomFrom=dateKey(new Date(today.getFullYear(),today.getMonth(),1));
+      statsCustomTo=dateKey(today);
+      document.getElementById('statsCustomFrom').value=statsCustomFrom;
+      document.getElementById('statsCustomTo').value=statsCustomTo;
+      statsCustomInitialized=true;
+    }
+    updateSimpleStats();
+  });
+  document.getElementById('statsCustomFrom').addEventListener('input',e=>{
+    statsCustomFrom=e.target.value;
+    updateSimpleStats();
+  });
+  document.getElementById('statsCustomTo').addEventListener('input',e=>{
+    statsCustomTo=e.target.value;
     updateSimpleStats();
   });
   document.getElementById('prevStatsWeek').addEventListener('click',()=>{
