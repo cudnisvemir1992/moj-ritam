@@ -1058,6 +1058,12 @@ function setTheme(theme){
     };
   }
 
+  function customStatsStepValue(raw){
+    if(csvValueMissing(raw)) return null;
+    const value=Number(String(raw).replace(/\s/g,''));
+    return Number.isFinite(value) && value>=0 ? value : null;
+  }
+
   function customSimpleStats(from,to){
     let totalSteps=0, days=0, totalDays=0;
     for(let dt=cloneDate(from);dt<=to;dt=addDays(dt,1)){
@@ -1065,10 +1071,8 @@ function setTheme(theme){
       const monday=mondayOf(dt);
       const w=app.weeks?.[dateKey(monday)];
       const i=dayIndexFromDate(dt);
-      const raw=w?.days?.[i]?.steps;
-      if(csvValueMissing(raw)) continue;
-      const value=Number(String(raw).replace(/\s/g,''));
-      if(!Number.isFinite(value) || value<0) continue;
+      const value=customStatsStepValue(w?.days?.[i]?.steps);
+      if(value===null) continue;
       totalSteps+=value;
       days++;
     }
@@ -1086,7 +1090,14 @@ function setTheme(theme){
     const yesterday=addDays(new Date(),-1);
     const checkFrom=from>first ? from : first;
     const checkTo=to<yesterday ? to : yesterday;
-    return checkFrom<=checkTo ? missingRitamCsvData(checkFrom,checkTo) : [];
+    const missing=[];
+    for(let dt=cloneDate(checkFrom);dt<=checkTo;dt=addDays(dt,1)){
+      const monday=mondayOf(dt);
+      const w=app.weeks?.[dateKey(monday)];
+      const i=dayIndexFromDate(dt);
+      if(customStatsStepValue(w?.days?.[i]?.steps)===null) missing.push(cloneDate(dt));
+    }
+    return missing;
   }
 
   function renderCustomStatsCompleteness(missing){
